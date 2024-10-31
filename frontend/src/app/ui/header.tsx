@@ -11,7 +11,12 @@ import {
   NavigationMenuViewport,
 } from "@/components/ui/navigation-menu";
 
-const Header = () => {
+// Define props interface
+interface HeaderProps {
+  title?: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ title }) => {
   return (
     <header>
       <NavigationMenu>
