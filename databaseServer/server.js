@@ -25,8 +25,8 @@ class Server {
 const dbServer = new Server(requestHandler);
 
 // local host test
-dbServer.server.listen(3000, () => {
-  console.log("Server is listening on port 3000");
+dbServer.server.listen(1337, () => {
+  console.log("Server is listening on port 1337");
 });
 
 // live server
