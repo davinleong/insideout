@@ -4,29 +4,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import Layout from "@/components/Layout"; // Import the Layout component
+import Layout from "@/components/Layout";
+import strings from "@/lib/strings";
 
 export default function UserLandingPage() {
   const router = useRouter();
-  
+
   // State variables to manage app flow
-  const [textInput, setTextInput] = useState("");
   const [imageFile, setImageFile] = useState<string>(""); // Initialize as an empty string
   const [apiCount, setApiCount] = useState(0); // Tracks remaining API calls
   const [maxReached, setMaxReached] = useState(false); // Tracks if max API calls reached
   const [responseMessage, setResponseMessage] = useState("");
   const [moodColor, setMoodColor] = useState(""); // Color data for smart light
+  const [loading, setLoading] = useState(false); // Tracks loading status
 
   const userId = "user123"; // Replace with actual user ID as needed
+  const constantText = "read my emotion"; // Constant text for the API requirement
 
   // Handle image upload and convert to base64
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     const reader = new FileReader();
     reader.readAsDataURL(file);
-  
+
     reader.onloadend = () => {
       const result = reader.result;
       if (typeof result === "string") {
@@ -34,38 +36,42 @@ export default function UserLandingPage() {
       }
     };
   };
-  
 
-  // Capture and analyze mood or text input
+  // Capture and analyze mood
   const handleCaptureAndAnalyzeMood = async () => {
-    // Check if user reached max API calls
     if (maxReached) {
-      alert("You have reached the maximum number of API calls!");
+      alert(strings.maxApiCallsReached);
       return;
     }
 
+    setLoading(true); // Start loading
+
     const payload = {
       user_id: userId,
-      text: textInput || "Detect my mood", // Use input text or default prompt
-      ...(textInput.toLowerCase().includes("read my emotion") && imageFile ? { image: imageFile } : {}),
+      text: constantText, // Use constant text for the API
+      image: imageFile,
     };
 
-    const response = await fetch("https://potipress.com/flaskapp/process", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const response = await fetch("https://potipress.com/flaskapp/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const { response: moodResponse, color, api_count, max_reached } = await response.json();
-    setApiCount(api_count);
-    setMaxReached(max_reached);
-    setResponseMessage(moodResponse);
-    setMoodColor(color);
+      const { response: moodResponse, color, api_count, max_reached } = await response.json();
+      setApiCount(api_count);
+      setMaxReached(max_reached);
+      setResponseMessage(moodResponse);
+      setMoodColor(color);
 
-
-
-    if (max_reached) {
-      alert("You have reached the maximum number of API calls.");
+      if (max_reached) {
+        alert(strings.maxApiCallsAlert);
+      }
+    } catch (error) {
+      console.error("Error analyzing mood:", error);
+    } finally {
+      setLoading(false); // End loading
     }
   };
 
@@ -77,54 +83,48 @@ export default function UserLandingPage() {
       body: JSON.stringify({ color: moodColor }),
     });
 
-    alert("Smart light color updated!");
+    alert(strings.smartLightUpdatedAlert);
   };
 
   return (
     <Layout>
-      <main className="flex flex-col items-center justify-center min-h-screen p-8 bg-gray-100 gap-4">
-        <h1 className="text-3xl font-bold mb-4">Mood-Based Light Control</h1>
-        <p className="mb-4 text-center">
-          Let the app scan your mood or analyze text, and adjust the room's light color to match!
+      <main className="flex flex-col items-center justify-center min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
+        <h1 className="text-2xl md:text-3xl font-bold mb-4 text-center">{strings.moodControlTitle}</h1>
+        <p className="mb-4 text-center text-base md:text-lg">
+          {strings.moodControlDescription}
         </p>
 
-        <p><strong>API Calls Remaining:</strong> {20 - apiCount}</p>
-        {maxReached && <p className="text-red-500">You have reached the maximum API call limit.</p>}
+        <p className="text-center"><strong>{strings.apiCallsRemaining}:</strong> {20 - apiCount}</p>
+        {maxReached && <p className="text-red-500 text-center">{strings.maxApiCallsReached}</p>}
 
         <div className="flex flex-col gap-4 w-full max-w-md items-center">
           <input
-            type="text"
-            placeholder="Enter text here (e.g., Tell me a joke)"
-            value={textInput}
-            onChange={(e) => setTextInput(e.target.value)}
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
             className="w-full p-2 border border-gray-300 rounded"
           />
 
-          {textInput.toLowerCase().includes("read my emotion") && (
-            <div className="mb-3 w-full">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="w-full p-2 border border-gray-300 rounded"
-              />
-            </div>
-          )}
-
-          <Button variant="default" onClick={handleCaptureAndAnalyzeMood}>
-            Capture & Analyze Mood
+          <Button variant="default" onClick={handleCaptureAndAnalyzeMood} disabled={loading} className="w-full">
+            {loading ? "Analyzing..." : strings.analyzeMoodButton}
           </Button>
 
           {moodColor && (
-            <Button variant="secondary" onClick={handleControlSmartLight}>
-              Set Light Color
+            <Button variant="secondary" onClick={handleControlSmartLight} className="w-full">
+              {strings.updateLightColorButton}
             </Button>
           )}
         </div>
 
-        {responseMessage && (
+        {loading && (
+          <div className="mt-4 p-4 text-center">
+            <span className="loader">Loading...</span>
+          </div>
+        )}
+
+        {responseMessage && !loading && (
           <div className="mt-4 p-4 bg-white shadow rounded max-w-md w-full">
-            <h3 className="font-semibold">Response from Server</h3>
+            <h3 className="font-semibold">{strings.responseTitle}</h3>
             <p>{responseMessage}</p>
           </div>
         )}
