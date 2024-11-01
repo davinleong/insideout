@@ -1,4 +1,7 @@
 // classes/requestHandler.js
+import bcrypt from 'bcrypt';
+const saltRounds = 10;
+
 export default class RequestHandler {
 
   constructor(supabase, apiVersion) {
@@ -37,8 +40,8 @@ export default class RequestHandler {
       }
     } else if (request.method === 'POST' && request.url === `/api/${this.apiVersion}/register`) {
       this.registerUser(request, response);
-    } else if (request.method === 'POST ' && request.url === `/api/${this.apiVersion}/login`) {
-      // Handle login request
+    } else if (request.method === 'POST' && request.url === `/api/${this.apiVersion}/login`) {
+      this.loginUser(request, response);
     } else {
       response.writeHead(405, { 'Content-Type': 'application/json' }); // (no other methods allowed)
       response.end(JSON.stringify({ message: 'Method Not Allowed' }));
@@ -71,16 +74,22 @@ export default class RequestHandler {
     request.on('data', chunk => {
       body += chunk.toString();
     })
+
     request.on('end', async () => {
       try {
         const userData = JSON.parse(body);
-        console.log(userData);
+
+        // hash password before insertion
+        // console.log("before hash", userData.password);
+        userData.password = await bcrypt.hash(userData.password, saltRounds);
+        // console.log("after hash", userData.password);
+
         const { data, error } = await this.supabase
           .from('users')
           .insert([userData]);
 
-        console.log('registerUser data:', data); // Log the data
-        console.log('registerUser error:', error); // Log any error
+        // console.log('registerUser data:', data); // Log the data
+        // console.log('registerUser error:', error); // Log any error
 
         if (error) {
           throw new Error(error.details);
@@ -92,6 +101,55 @@ export default class RequestHandler {
       } catch (e) {
         response.writeHead(400, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify({ message: e.message }));
+      }
+    });
+  }
+
+  async hashPassword(password) {
+    try {
+      const salt = await bcrypt.genSalt(saltRounds);
+      const hash = await bcrypt.hash(password, salt);
+      return hash;
+    } catch (err) {
+      console.error('Error hashing password:', err);
+      throw err;
+    }
+  }
+
+  async loginUser(req, res) {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', async () => {
+      try {
+        const { email, password } = JSON.parse(body);
+        // console.log("Logging in user...", email);
+  
+        // Retrieve the user from the database
+        const { data, error } = await this.supabase.from('users').select('*').eq('email', email).single();
+        if (error) {
+          throw error;
+        }
+  
+        const user = data;
+        // console.log("Retrieved user:", user);
+  
+        // Compare the provided password with the hashed password from the database
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+          throw new Error('Invalid password');
+        }
+        
+        // success route
+        // httpOnly JWT cookie attached
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: 'Login successful' }));
+      } catch (e) {
+        // console.error('Error logging in user:', e);
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ message: e.message, details: e.details }));
       }
     });
   }
