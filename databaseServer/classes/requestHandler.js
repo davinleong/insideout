@@ -1,5 +1,6 @@
 // classes/requestHandler.js
 import bcrypt from 'bcrypt';
+import TokenHandler from './tokenHandler.js';
 const saltRounds = 10;
 
 export default class RequestHandler {
@@ -125,24 +126,34 @@ export default class RequestHandler {
       try {
         const { email, password } = JSON.parse(body);
         // console.log("Logging in user...", email);
-  
+
         // Retrieve the user from the database
         const { data, error } = await this.supabase.from('users').select('*').eq('email', email).single();
         if (error) {
           throw error;
         }
-  
+
         const user = data;
         // console.log("Retrieved user:", user);
-  
+
         // Compare the provided password with the hashed password from the database
         const match = await bcrypt.compare(password, user.password);
         if (!match) {
           throw new Error('Invalid password');
         }
-        
+
+        // Generate a JWT token
+        console.log('Generating token...');
+        let token = TokenHandler.generateToken(user);
+        console.log('Generated token:', token);
+
         // success route
         // httpOnly JWT cookie attached
+        // Assuming `token` is the generated JWT or session ID
+        // Manually set the Set-Cookie header
+        const cookie = `authToken=${token}; HttpOnly; Secure; Max-Age=3600`;
+        res.setHeader('Set-Cookie', cookie);
+
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Login successful' }));
