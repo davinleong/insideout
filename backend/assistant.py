@@ -106,8 +106,8 @@ class Assistant:
             return {"emotion": "Unknown", "color": "Unknown"}
 
     def _generate_response(self, prompt):
-        ollama_path = "/usr/local/bin/ollama" # to use in the local environment
-        # ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama"
+        # ollama_path = "/usr/local/bin/ollama" # to use in the local environment
+        ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama"
         try:
             result = subprocess.run(
                 [ollama_path, "run", "llama3.2:1b"],
