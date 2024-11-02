@@ -95,6 +95,9 @@ export default function Login() {
             <Link href="/dashboard/" className="flex items-center">
               Back
             </Link>
+            <Link href="/dashboard/forgotPassword" className="flex items-center">
+              Forgot Password?
+            </Link>
           </Button>
         </div>
       </div>
