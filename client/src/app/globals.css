@@ -2,12 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
+/* Reset margin and padding, and set font family */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Apply a light gray background only to the body */
+body {
+  background-color: #f3f4f6;
+}
+
+/* Root variable for border radius */
 @layer base {
   :root {
     --radius: 0.5rem;
   }
+}
+
+/* Centering styles only for the login page */
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh; /* Full viewport height for centering */
+}
+
+/* Styling for the login form */
+.login-form {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: var(--radius); /* Use root variable for radius */
+  background-color: #ffffff;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  text-align: center;
 }
