@@ -12,3 +12,4 @@ develop-eggs/
 dist/
 eggs/
 *.egg-info/
+.db

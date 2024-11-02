@@ -1,13 +1,38 @@
 import base64
 import io
 import subprocess
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from deepface import DeepFace
 from PIL import Image
 import numpy as np
 import cv2
 import sqlite3
+from flask_swagger_ui import get_swaggerui_blueprint
+
+app = Flask(__name__)
+CORS(app)
+
+# Configure Swagger UI
+SWAGGER_URL = '/api/docs'
+API_URL = '/static/swagger.yml'
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': "Inside Out API"
+    }
+)
+
+# Register blueprint at URL
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+
+# Route for serving swagger.yml
+@app.route('/static/swagger.yml')
+def send_swagger_yml():
+    return send_from_directory('static', 'swagger.yml')
 
 def init_db():
     conn = sqlite3.connect('api_counts.db')
@@ -20,9 +45,6 @@ def init_db():
     ''')
     conn.commit()
     conn.close()
-
-app = Flask(__name__)
-CORS(app)
 
 init_db()
 class Assistant:
@@ -84,8 +106,8 @@ class Assistant:
             return {"emotion": "Unknown", "color": "Unknown"}
 
     def _generate_response(self, prompt):
-        # ollama_path = "/usr/local/bin/ollama" # to use in the local environment
-        ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama"
+        ollama_path = "/usr/local/bin/ollama" # to use in the local environment
+        # ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama"
         try:
             result = subprocess.run(
                 [ollama_path, "run", "llama3.2:1b"],
@@ -147,6 +169,29 @@ def process_request():
         'api_count': api_count,
         'max_reached': max_reached
     })
+
+@app.route('/api_count', methods=['GET'])
+def get_api_count():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({'error': 'User ID not provided.'}), 400
+
+    conn = sqlite3.connect('api_counts.db')
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT api_count FROM api_counts WHERE user_id = ?', (user_id,))
+    result = cursor.fetchone()
+
+    if result:
+        api_count = result[0]
+    else:
+        api_count = 0
+
+    conn.close()
+
+    return jsonify({'api_count': api_count})
+
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8282)

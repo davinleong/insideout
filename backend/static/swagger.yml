@@ -1,0 +1,101 @@
+openapi: 3.0.0
+info:
+  title: Inside Out API
+  description: API for emotion detection from images
+  version: 1.0.0
+  contact:
+    email: cloudfan150@gmail.com
+
+servers:
+  - url: http://localhost:8282
+    description: Development server
+  - url: https://potipress.com/flaskapp
+    description: Production server
+
+paths:
+  /process:
+    post:
+      summary: Process an image for emotion detection
+      description: Analyzes an image to detect emotion and returns a response with color association
+      requestBody:
+        required: true
+        content:
+          application/json: # Changed from multipart/form-data to application/json
+            schema:
+              type: object
+              required:
+                - user_id
+                - image
+              properties:
+                user_id:
+                  type: string
+                  description: Unique identifier for the user
+                image:
+                  type: string
+                  description: Base64 encoded image string
+      responses:
+        "200":
+          description: Successful emotion detection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response:
+                    type: string
+                    description: Generated response about detected emotion
+                  color:
+                    type: string
+                    description: Color associated with the emotion
+                  api_count:
+                    type: integer
+                    description: Current count of API calls for this user
+                  max_reached:
+                    type: boolean
+                    description: Whether user has exceeded their free API calls (20)
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        "500":
+          description: Internal server error
+
+  /api_count:
+    get:
+      summary: Get API usage count for a user
+      parameters:
+        - in: query
+          name: user_id
+          required: true
+          schema:
+            type: string
+          description: User ID to check API count for
+      responses:
+        "200":
+          description: Successfully retrieved API count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_count:
+                    type: integer
+                    description: Number of API calls made by the user
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: Error message
+        "500":
+          description: Internal server error

@@ -10,6 +10,7 @@ filelock==3.16.1
 fire==0.7.0
 Flask==3.0.3
 Flask-Cors==5.0.0
+flask-swagger-ui==4.11.1
 flatbuffers==24.3.25
 fsspec==2024.10.0
 gast==0.6.0
