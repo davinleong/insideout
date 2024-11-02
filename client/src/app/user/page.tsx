@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/camelcase */
 // src/app/user/page.tsx
 "use client";
 
@@ -47,6 +48,7 @@ export default function UserLandingPage() {
     setLoading(true); // Start loading
 
     const payload = {
+      // eslint-disable-next-line @typescript-eslint/camelcase
       user_id: userId,
       text: constantText, // Use constant text for the API
       image: imageFile,
@@ -59,6 +61,7 @@ export default function UserLandingPage() {
         body: JSON.stringify(payload),
       });
 
+      // eslint-disable-next-line @typescript-eslint/camelcase
       const { response: moodResponse, color, api_count, max_reached } = await response.json();
       setApiCount(api_count);
       setMaxReached(max_reached);

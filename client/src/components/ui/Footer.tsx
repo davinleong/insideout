@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-gray-800 p-4 text-white text-center mt-auto">
+    <footer className="w-full bg-gray-800 p-4 text-white text-center">
       <p>&copy; {new Date().getFullYear()} My Mood-Based Light Control App. All rights reserved.</p>
       <nav className="mt-2 flex justify-center gap-4">
         <Button asChild variant="link">
