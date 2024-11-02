@@ -1,4 +1,5 @@
-python3.10 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python3 assistant.py
+1. python3.10 -m venv .venv
+2. source .venv/bin/activate
+3. pip install -r requirements.txt
+4. "In the code, ensure to change the ollama path to your local ollama path"
+5. python3 assistant.py
