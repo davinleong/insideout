@@ -15,7 +15,7 @@ CORS(app)
 
 # Configure Swagger UI
 SWAGGER_URL = '/flaskapp/docs'
-API_URL = '/flaskapp/swagger.yml'
+API_URL = '/flaskapp/static/swagger.yml'
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -30,7 +30,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 # Route for serving swagger.yml
-@app.route('/flaskapp/swagger.yml')
+@app.route('/flaskapp/static/swagger.yml')
 def send_swagger_yml():
     return send_from_directory('static', 'swagger.yml')
 
