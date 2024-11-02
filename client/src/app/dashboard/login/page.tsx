@@ -22,6 +22,7 @@ export default function Login() {
       `${process.env.NEXT_PUBLIC_USER_DATABASE}/login`,
       {
         method: "POST",
+        credentials: "include", // Send/receive cookies
         headers: {
           "Content-Type": "application/json",
         },

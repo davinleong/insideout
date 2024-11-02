@@ -11,9 +11,10 @@ export default class RequestHandler {
   }
 
   async handleRequest(request, response) {
-    response.setHeader('Access-Control-Allow-Origin', '*');
+    response.setHeader('Access-Control-Allow-Origin', 'https://localhost:3000'); // this should be client URL
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    response.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials
 
     // Handle preflight requests (OPTIONS)
     if (request.method === 'OPTIONS') {
@@ -153,7 +154,6 @@ export default class RequestHandler {
         // Manually set the Set-Cookie header
         const cookie = `authToken=${token}; HttpOnly; Secure; Max-Age=3600`;
         res.setHeader('Set-Cookie', cookie);
-
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Login successful' }));
