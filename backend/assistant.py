@@ -10,12 +10,12 @@ import cv2
 import sqlite3
 from flask_swagger_ui import get_swaggerui_blueprint
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 CORS(app)
 
 # Configure Swagger UI
-SWAGGER_URL = '/flaskapp/docs'
-API_URL = '/flaskapp/static/swagger.yml'
+SWAGGER_URL = '/docs'
+API_URL = '/static/swagger.yml'
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -30,7 +30,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 # Route for serving swagger.yml
-@app.route('/flaskapp/static/swagger.yml')
+@app.route('/static/swagger.yml')
 def send_swagger_yml():
     return send_from_directory('static', 'swagger.yml')
 
