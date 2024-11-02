@@ -37,46 +37,32 @@ class Assistant:
             "surprise": "Yellow"
         }
 
-        # Replace 'model_name'
-        # model_name = "google/gemma-2-2b-it"
+    def answer(self, image_base64):    
+        print("Length of image_base64:", len(image_base64))
 
-        # try:
-        #     self.model = AutoModelForCausalLM.from_pretrained(model_name)
-        #     self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        # except Exception as e:
-        #     print("Error loading model:", e)
-        #     print("Exiting...")
-        #     exit()
+        # Decode image
+        try:
+            image_data = base64.b64decode(image_base64)
+            image = Image.open(io.BytesIO(image_data))
+            frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+            print("Image successfully decoded and processed.")
+        except Exception as e:
+            print("Error decoding image:", e)
+            return "Failed to decode image.", "Unknown"
 
-    def answer(self, prompt, image_base64):
-        if not prompt:
-            return None, None
-        
-        # Check if "read my emotion" is in the prompt
-        if "read my emotion" in prompt.lower():
-            if not image_base64:
-                return "No image provided for emotion detection.", "Unknown"
-            # Decode image
-            try:
-                image_data = base64.b64decode(image_base64)
-                image = Image.open(io.BytesIO(image_data))
-                frame = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-            except Exception as e:
-                print("Error decoding image:", e)
-                return "Failed to decode image.", "Unknown"
+        # Detect emotion
+        emotion_color = self.detect_emotion(frame)
+        detected_emotion = emotion_color['emotion']
 
-            # Detect emotion
-            emotion_color = self.detect_emotion(frame)
-            emotion_response = f"I detect that you are feeling {emotion_color['emotion']}. The color associated with this emotion is {emotion_color['color']}."
-            print("Emotion Response:", emotion_response)
-            return emotion_response, emotion_color['color']
+        if detected_emotion != "Unknown":
+            prompt_for_llm = f"Respond empathetically to someone feeling {detected_emotion.lower()}."
+            llm_response = self._generate_response(prompt_for_llm)
+            emotion_response = f"I detect that you are feeling {detected_emotion}. The color associated with this emotion is {emotion_color['color']}. {llm_response}"
         else:
-            # For other prompts, directly use the prompt with the LLM
-            response = self._generate_response(prompt)
-            print("Response:", response)
-
-            # Return color as "Unknown" since emotion detection isn't performed
-            return response, "Unknown"
+            emotion_response = "I'm sorry, I'm unable to detect your emotion at the moment. Could you try again?"
+        
+        print("Emotion Response:", emotion_response)
+        return emotion_response, emotion_color['color']
             
     def detect_emotion(self, frame):
         try:
@@ -123,13 +109,12 @@ user_api_counts = {}
 def process_request():
     data = request.get_json()
     user_id = data.get('user_id')
-    prompt = data.get('text')
     image_base64 = data.get('image')
     
     if not user_id:
         return jsonify({'error': 'User ID not provided.'}), 400
-    if not prompt:
-        return jsonify({'error': 'No text provided.'}), 400
+    if not image_base64:
+        return jsonify({'error': 'No image provided.'}), 400
 
     # Update API call count for the user
     conn = sqlite3.connect('api_counts.db')
@@ -154,7 +139,7 @@ def process_request():
     else:
         max_reached = False
 
-    response_text, color = assistant.answer(prompt, image_base64)
+    response_text, color = assistant.answer(image_base64)
 
     return jsonify({
         'response': response_text,
