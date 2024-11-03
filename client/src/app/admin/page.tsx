@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import Layout from "@/components/Layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
 
@@ -53,7 +52,6 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   return (
-    <Layout>
       <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
         <Card className="w-full max-w-2xl bg-white shadow-md rounded-lg">
           <CardHeader>
@@ -128,7 +126,6 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 };
 

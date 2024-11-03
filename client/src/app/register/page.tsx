@@ -3,7 +3,6 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Layout from "@/components/Layout";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
@@ -58,50 +57,48 @@ export default function Register() {
   };
 
   return (
-    <Layout>
-      <div className="flex flex-col items-center justify-top min-h-screen">
-        <h1 className="text-3xl font-bold mb-8 mt-8">Register Page!</h1>
-        <div className="space-y-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Registering..." : "Register"}
-            </Button>
-          </form>
-          {loading && <p className="mt-4">Loading...</p>}
-          {message && (
-            <p
-              className={`mt-4 ${
-                messageType === "success" ? "text-green-500" : "text-red-500"
-              }`}
-            >
-              {message}
-            </p>
-          )}
-          <Button variant="secondary" className="w-full">
-            <Link href="/" className="flex items-center">
-              Back
-            </Link>
+    <div className="flex flex-col items-center justify-top min-h-screen">
+      <h1 className="text-3xl font-bold mb-8 mt-8">Register Page!</h1>
+      <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+          />
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Registering..." : "Register"}
           </Button>
-        </div>
+        </form>
+        {loading && <p className="mt-4">Loading...</p>}
+        {message && (
+          <p
+            className={`mt-4 ${
+              messageType === "success" ? "text-green-500" : "text-red-500"
+            }`}
+          >
+            {message}
+          </p>
+        )}
+        <Button variant="secondary" className="text-xl">
+          <Link href="/" className="flex items-center">
+            Back
+          </Link>
+        </Button>
       </div>
-    </Layout>
+    </div>
   );
 }

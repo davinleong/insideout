@@ -30,13 +30,13 @@ export default function Header() {
           <Button asChild variant="ghost" className="hover:bg-gray-700 text-white transition-colors">
             <a href="/settings">Settings</a>
           </Button>
-          <Button
+          {/* <Button
             onClick={handleLogout}
             variant="ghost"
             className="hover:bg-gray-700 text-white transition-colors"
           >
             Logout
-          </Button>
+          </Button> */}
         </nav>
       </div>
     </header>

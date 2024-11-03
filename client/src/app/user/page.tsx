@@ -5,7 +5,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import Layout from "@/components/Layout";
 import strings from "@/lib/strings";
 
 export default function UserLandingPage() {
@@ -90,8 +89,7 @@ export default function UserLandingPage() {
   };
 
   return (
-    <Layout>
-      <main className="flex flex-col items-center justify-center min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
+      <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
         <h1 className="text-2xl md:text-3xl font-bold mb-4 text-center">{strings.moodControlTitle}</h1>
         <p className="mb-4 text-center text-base md:text-lg">
           {strings.moodControlDescription}
@@ -132,6 +130,5 @@ export default function UserLandingPage() {
           </div>
         )}
       </main>
-    </Layout>
   );
 }
