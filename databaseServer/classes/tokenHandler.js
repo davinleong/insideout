@@ -27,4 +27,20 @@ export default class TokenHandler {
 
     return `${encodedHeader}.${encodedPayload}.${signature}`;
   }
+
+  static verifyToken(token) {
+    const [encodedHeader, encodedPayload, signature] = token.split('.');
+    const secret = process.env.JWT_SECRET; // Replace with your secret key
+
+    if (signature !== createSignature(encodedHeader, encodedPayload, secret)) {
+      throw new Error('Invalid token');
+    }
+
+    const payload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString());
+    if (payload.exp < Math.floor(Date.now() / 1000)) {
+      throw new Error('Token expired');
+    }
+
+    return payload;
+  }
 }
