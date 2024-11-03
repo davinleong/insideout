@@ -1,6 +1,8 @@
 // classes/requestHandler.js
 import bcrypt from 'bcrypt';
 import TokenHandler from './tokenHandler.js';
+import jwt from 'jsonwebtoken';
+
 const saltRounds = 10;
 
 export default class RequestHandler {

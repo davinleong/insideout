@@ -6,13 +6,13 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -33,8 +33,10 @@ export default function Login() {
     if (response.ok) {
       setMessage(`Successful login for Email: ${email}`);
       setMessageType("success");
-
-      router.push("/user");
+      const x = document.cookie;
+      console.log("test");
+      console.log(x);
+      // router.push("/user");
     } else {
       const errorData = await response.json();
       setMessage(`Login failed: ${errorData.message}`);
