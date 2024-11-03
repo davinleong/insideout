@@ -1,3 +1,5 @@
+//src/constants/messages.tsx
+// Messages used throughout the application
 const messages = {
   auth: {
     loginSuccess: "Successful login for",

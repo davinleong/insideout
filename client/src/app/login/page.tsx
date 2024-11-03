@@ -1,3 +1,6 @@
+//login/page.tsx
+// Login page
+
 "use client";
 
 import { Input } from "@/components/ui/input";

@@ -1,5 +1,5 @@
-// src/app/admin/page.tsx
-
+//src/app/admin/page.tsx
+// Admin dashboard page
 "use client";
 
 import React, { useEffect, useState } from 'react';
@@ -14,7 +14,6 @@ interface ApiStat {
 }
 
 interface UserStat {
-  username: string;
   email: string;
   token: string;
   totalRequests: number;
@@ -57,7 +56,7 @@ const AdminDashboard: React.FC = () => {
         const users = await userResponse.json();
 
         // Fetch API stats for each user
-        const userStatsPromises = users.map(async (user: { id: string; email: string; username: string }) => {
+        const userStatsPromises = users.map(async (user: { id: string; email: string}) => {
           const userStatsResponse = await fetch(`${process.env.API_URL}/api_count?user_id=${user.id}`, {
             method: "GET",
             headers: {
@@ -69,7 +68,6 @@ const AdminDashboard: React.FC = () => {
           if (userStatsResponse.ok) {
             const { api_count: totalRequests } = await userStatsResponse.json();
             return {
-              username: user.username,
               email: user.email,
               token: token,
               totalRequests,
@@ -142,7 +140,6 @@ const AdminDashboard: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableHeaderCell>Username</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
                     <TableHeaderCell>Token</TableHeaderCell>
                     <TableHeaderCell>Total Requests</TableHeaderCell>
@@ -152,7 +149,6 @@ const AdminDashboard: React.FC = () => {
                   {userStats.length ? (
                     userStats.map((user, index) => (
                       <TableRow key={index}>
-                        <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.token}</TableCell>
                         <TableCell>{user.totalRequests}</TableCell>
