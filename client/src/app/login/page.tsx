@@ -31,8 +31,6 @@ export default function Login() {
     );
 
     if (response.ok) {
-      const responseData = await response.json();
-
       setMessage(`Successful login for Email: ${email}`);
       setMessageType("success");
 
@@ -63,8 +61,8 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" className="w-full">
-            Login
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
         {loading && <p className="mt-4">Loading...</p>}
@@ -77,7 +75,7 @@ export default function Login() {
             {message}
           </p>
         )}
-        <Button variant="secondary" className="w-full">
+        <Button variant="secondary" className="text-xl">
           <Link href="/" className="flex items-center">
             Back
           </Link>
