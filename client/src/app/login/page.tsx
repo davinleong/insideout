@@ -6,7 +6,6 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,7 +35,8 @@ export default function Login() {
       const x = document.cookie;
       console.log("test");
       console.log(x);
-      // router.push("/user");
+      // On the page where you log in
+      console.log("Cookies after login:", document.cookie);
     } else {
       const errorData = await response.json();
       setMessage(`Login failed: ${errorData.message}`);
