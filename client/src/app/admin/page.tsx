@@ -16,7 +16,6 @@ interface UserStat {
   email: string;
   token: string;
   totalRequests: number;
-  remainingRequests?: number; // Optional: Add remaining requests field
 }
 
 const AdminDashboard: React.FC = () => {
@@ -28,7 +27,8 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchApiData = async () => {
       try {
-        const response = await fetch("https://potipress.com/flaskapp/process", {
+        // Adjust the endpoint to the correct one that retrieves API stats
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });

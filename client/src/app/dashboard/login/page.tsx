@@ -2,10 +2,16 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import Layout from '@/components/Layout';
+import Layout from "@/components/Layout";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+
+// Define the User type to specify the structure of each user object
+interface User {
+  email: string;
+  role: string;
+}
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -19,7 +25,8 @@ export default function Login() {
     event.preventDefault();
     setLoading(true);
 
-    const response = await fetch(
+    // Step 1: Perform login request
+    const loginResponse = await fetch(
       `${process.env.NEXT_PUBLIC_USER_DATABASE}/login`,
       {
         method: "POST",
@@ -31,27 +38,48 @@ export default function Login() {
       }
     );
 
-    if (response.ok) {
-      const responseData = await response.json();
-
-      // Assuming the token is returned in the responseData
-      const token = responseData.token;
-
-      // Decode the token's payload to check for user role
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const userRole = payload.role;
-
+    if (loginResponse.ok) {
       setMessage(`Successful login for Email: ${email}`);
       setMessageType("success");
 
-      // Redirect based on user role
-      if (userRole === "admin") {
-        router.push("/admin");
+      // Step 2: Fetch all users and find the logged-in user's role
+      const userResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_USER_DATABASE}/users`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (userResponse.ok) {
+        const users: User[] = await userResponse.json();
+
+        // Filter the users array to find the logged-in user by email
+        const currentUser = users.find((user: User) => user.email === email);
+
+        if (currentUser && currentUser.role) {
+          const userRole = currentUser.role;
+
+          // Step 3: Redirect based on user role
+          if (userRole === "admin") {
+            router.push("/admin");
+          } else {
+            router.push("/user");
+          }
+        } else {
+          setMessage("Role data not found for the logged-in user.");
+          setMessageType("error");
+          console.error("User Role not found in the data:", currentUser);
+        }
       } else {
-        router.push("/user");
+        setMessage("Failed to retrieve user information.");
+        setMessageType("error");
       }
     } else {
-      const errorData = await response.json();
+      const errorData = await loginResponse.json();
       setMessage(`Login failed: ${errorData.message}`);
       setMessageType("error");
     }
@@ -78,7 +106,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <Button type="submit" className="w-full">
-              Login
+              {loading ? "Logging in..." : "Login"}
             </Button>
           </form>
           {loading && <p className="mt-4">Loading...</p>}
@@ -92,7 +120,7 @@ export default function Login() {
             </p>
           )}
           <Button variant="secondary" className="w-full">
-            <Link href="/dashboard/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               Back
             </Link>
           </Button>
