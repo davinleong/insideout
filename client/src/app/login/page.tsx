@@ -1,3 +1,6 @@
+//login/page.tsx
+// Login page
+
 "use client";
 
 import { Input } from "@/components/ui/input";
@@ -5,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import messages from "@/constants/messages"; // Importing messages
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -30,7 +34,10 @@ export default function Login() {
     );
 
     if (response.ok) {
-      setMessage(`Successful login for Email: ${email}`);
+      const responseData = await response.json();
+
+      setMessage(`${messages.auth.loginSuccess} Email: ${email}`);
+      
       setMessageType("success");
       const x = document.cookie;
       console.log("test");
@@ -39,7 +46,7 @@ export default function Login() {
       console.log("Cookies after login:", document.cookie);
     } else {
       const errorData = await response.json();
-      setMessage(`Login failed: ${errorData.message}`);
+      setMessage(`${messages.auth.loginFailed}: ${errorData.message}`);
       setMessageType("error");
     }
 
@@ -67,7 +74,7 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
-        {loading && <p className="mt-4">Loading...</p>}
+        {loading && <p className="mt-4">{messages.loading}</p>}
         {message && (
           <p
             className={`mt-4 ${

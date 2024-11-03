@@ -42,6 +42,8 @@ export default class RequestHandler {
         response.writeHead(500, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify({ message: error.message }));
       }
+    } else if (request.method === 'GET' && request.url === `/api/${this.apiVersion}/verify-token`) {
+      this.verifyToken(request, response);
     } else if (request.method === 'POST' && request.url === `/api/${this.apiVersion}/register`) {
       this.registerUser(request, response);
     } else if (request.method === 'POST' && request.url === `/api/${this.apiVersion}/login`) {
@@ -165,6 +167,26 @@ export default class RequestHandler {
         res.end(JSON.stringify({ message: e.message, details: e.details }));
       }
     });
+  }
+
+  async verifyToken(request, response) {
+    try {
+      const cookieHeader = request.headers.cookie || '';
+      const token = cookieHeader.split('authToken=')[1];
+      
+      if (!token) {
+        response.writeHead(401, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify({ message: 'Unauthorized - No token found' }));
+        return;
+      }
+      
+      const payload = TokenHandler.verifyToken(token); 
+      response.writeHead(200, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ message: 'Token is valid', role: payload.role }));
+    } catch (error) {
+      response.writeHead(403, { 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ message: 'Invalid token' }));
+    }
   }
 
   // GET /users should return a specific user?
