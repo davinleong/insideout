@@ -1,15 +1,10 @@
+//src/app/login/page.tsx
 "use client";
 
 import React, { useEffect, useState } from 'react';
 import messages from "@/constants/messages";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
-
-interface ApiStat {
-  method: string;
-  endpoint: string;
-  requests: number;
-}
 
 interface UserStat {
   username: string;
@@ -19,15 +14,13 @@ interface UserStat {
 }
 
 const AdminDashboard: React.FC = () => {
-  const [apiStats, setApiStats] = useState<ApiStat[]>([]);
   const [userStats, setUserStats] = useState<UserStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchApiData = async () => {
+    const fetchUserData = async () => {
       try {
-        // Retrieve the token from cookies (httpOnly cookie)
         const token = document.cookie
           .split('; ')
           .find(row => row.startsWith('authToken='))
@@ -38,49 +31,60 @@ const AdminDashboard: React.FC = () => {
           return;
         }
 
-        // Fetch API stats
-        const apiStatsResponse = await fetch(`${process.env.API_URL}/api_count`, {
+        // Fetch all users
+        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}` 
+            "Authorization": `Bearer ${token}`,
           },
         });
 
-        if (apiStatsResponse.ok) {
-          const apiStatsData = await apiStatsResponse.json();
-          setApiStats(apiStatsData); 
-        } else {
-          setError(messages.fetch.apiStatsError);
-          console.error(messages.fetch.apiStatsError, apiStatsResponse.statusText);
+        if (!userResponse.ok) {
+          throw new Error(messages.fetch.userStatsError);
         }
 
-        // Fetch user stats
-        const userStatsResponse = await fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/users`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
+        const users = await userResponse.json();
+
+        // Fetch API stats for each user
+        const userStatsPromises = users.map(async (user: { id: string; email: string }) => {
+          const userStatsResponse = await fetch(`${process.env.API_URL}/api_count?user_id=${user.id}`, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+          });
+
+          if (userStatsResponse.ok) {
+            const { api_count: totalRequests } = await userStatsResponse.json();
+            return {
+              email: user.email,
+              token: token,
+              totalRequests,
+            };
+          } else {
+            console.error(`${messages.fetch.userStatsError} for user ID: ${user.id}`);
+            return null;
+          }
         });
 
-        if (userStatsResponse.ok) {
-          const userStatsData = await userStatsResponse.json();
-          setUserStats(userStatsData);
-        } else {
-          setError(messages.fetch.userStatsError);
-          console.error(messages.fetch.userStatsError, userStatsResponse.statusText);
-        }
+        const resolvedUserStats = (await Promise.all(userStatsPromises)).filter(Boolean);
+        setUserStats(resolvedUserStats as UserStat[]);
 
       } catch (error) {
-        setError(messages.fetch.unknownError);
+        if (error instanceof Error) {
+          setError(error.message);
+        } else {
+          setError(messages.fetch.unknownError);
+        }
         console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchApiData();
+    fetchUserData();
   }, []);
 
   return (
@@ -96,39 +100,10 @@ const AdminDashboard: React.FC = () => {
             <p className="text-center text-red-500">{error}</p>
           ) : (
             <>
-              <h2 className="text-lg font-semibold mt-4">{messages.dashboard.apiStatsTitle}</h2>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableHeaderCell>Method</TableHeaderCell>
-                    <TableHeaderCell>Endpoint</TableHeaderCell>
-                    <TableHeaderCell>Requests</TableHeaderCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {apiStats.length ? (
-                    apiStats.map((stat, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{stat.method}</TableCell>
-                        <TableCell>{stat.endpoint}</TableCell>
-                        <TableCell>{stat.requests}</TableCell>
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <td colSpan={3} className="text-center">
-                        {messages.table.noApiStats}
-                      </td>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-
               <h2 className="text-lg font-semibold mt-4">{messages.dashboard.userStatsTitle}</h2>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableHeaderCell>Username</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
                     <TableHeaderCell>Token</TableHeaderCell>
                     <TableHeaderCell>Total Requests</TableHeaderCell>
@@ -138,7 +113,6 @@ const AdminDashboard: React.FC = () => {
                   {userStats.length ? (
                     userStats.map((user, index) => (
                       <TableRow key={index}>
-                        <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>{user.token}</TableCell>
                         <TableCell>{user.totalRequests}</TableCell>
