@@ -6,6 +6,7 @@ import React, { useEffect, useState } from 'react';
 import messages from "@/constants/messages";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
+import { useRouter } from "next/navigation";
 
 interface ApiStat {
   method: string;
@@ -25,27 +26,55 @@ const AdminDashboard: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_USER_DATABASE}/verify-token`,
+          {
+            method: "GET",
+            credentials: "include", // Include cookies in the request
+          }
+        );
+        if (response.status !== 200) {
+         router.push("/login");
+         return;
+        }
+
+        const data = await response.json();
+        console.log("Verification response:", data.info.role);
+
+        if (data.info.role !== "admin") {
+          router.push("/login");
+          return;
+        }
+
+        // Handle verification response here
+      } catch (error) {
+        console.error("Error:", error);
+      }
+    };
+
     const fetchApiData = async () => {
       try {
         // Retrieve the JWT token from cookies
-        const token = document.cookie
-          .split('; ')
-          .find(row => row.startsWith('authToken='))
-          ?.split('=')[1];
+        // const token = document.cookie
+        //   .split('; ')
+        //   .find(row => row.startsWith('authToken='))
+        //   ?.split('=')[1];
 
-        if (!token) {
-          setError(messages.auth.notAuthenticated);
-          return;
-        }
+        // if (!token) {
+        //   setError(messages.auth.notAuthenticated);
+        //   return;
+        // }
 
         // Fetch all user information
         const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`,
           },
         });
 
@@ -61,7 +90,6 @@ const AdminDashboard: React.FC = () => {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token}`,
             },
           });
 
@@ -69,7 +97,6 @@ const AdminDashboard: React.FC = () => {
             const { api_count: totalRequests } = await userStatsResponse.json();
             return {
               email: user.email,
-              token: token,
               totalRequests,
             };
           } else {
@@ -92,6 +119,7 @@ const AdminDashboard: React.FC = () => {
       }
     };
 
+    checkAuth();
     fetchApiData();
   }, []);
 
