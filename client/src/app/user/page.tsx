@@ -16,7 +16,7 @@ export default function UserLandingPage() {
   const [moodColor, setMoodColor] = useState(""); // Color data for smart light
   const [loading, setLoading] = useState(false); // Tracks loading status
   const [userId, setUser] = useState<string>("Guest"); // State to store user information
-  
+
   const router = useRouter();
 
   // let userId = "Guest"; // Replace with actual user ID as needed
@@ -54,7 +54,7 @@ export default function UserLandingPage() {
       }
 
       const data = await response.json();
-      setUser(data.role.email);
+      setUser(data.info.email);
       console.log("Verification response:", data);
       // Handle verification response here
     } catch (error) {
