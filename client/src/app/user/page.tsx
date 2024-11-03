@@ -3,12 +3,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import strings from "@/lib/strings";
 
 export default function UserLandingPage() {
-  const router = useRouter();
 
   // State variables to manage app flow
   const [imageFile, setImageFile] = useState<string>(""); // Initialize as an empty string
@@ -55,6 +53,7 @@ export default function UserLandingPage() {
 
     try {
       const response = await fetch(`${process.env.API_URL}`, {
+
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

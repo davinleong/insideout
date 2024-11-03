@@ -6,8 +6,8 @@ import Link from "next/link";
 
 export default function Dashboard() {
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen mt-8">
-      {/* <h1 className="text-3xl mb-8">Welcome!</h1> */}
+    <div className="flex flex-col items-center justify-start min-h-screen">
+      <h1 className="text-3xl mb-8">Welcome!</h1>
       <nav>
         <ul className="flex flex-col items-center space-y-4">
           <li>

@@ -16,7 +16,6 @@ export default function Login() {
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState<"success" | "error" | "">("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -38,9 +37,13 @@ export default function Login() {
       const responseData = await response.json();
 
       setMessage(`${messages.auth.loginSuccess} Email: ${email}`);
+      
       setMessageType("success");
-
-      router.push("/user");
+      const x = document.cookie;
+      console.log("test");
+      console.log(x);
+      // On the page where you log in
+      console.log("Cookies after login:", document.cookie);
     } else {
       const errorData = await response.json();
       setMessage(`${messages.auth.loginFailed}: ${errorData.message}`);
@@ -67,8 +70,8 @@ export default function Login() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <Button type="submit" className="w-full">
-            Login
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
         {loading && <p className="mt-4">{messages.loading}</p>}
@@ -81,7 +84,7 @@ export default function Login() {
             {message}
           </p>
         )}
-        <Button variant="secondary" className="w-full">
+        <Button variant="secondary" className="text-xl">
           <Link href="/" className="flex items-center">
             Back
           </Link>
