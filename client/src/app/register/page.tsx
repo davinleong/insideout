@@ -93,7 +93,7 @@ export default function Register() {
           </p>
         )}
         <Button variant="secondary" className="text-xl">
-          <Link href="/dashboard/" className="flex items-center">
+          <Link href="/" className="flex items-center">
             Back
           </Link>
         </Button>
