@@ -79,7 +79,7 @@ export default function UserLandingPage() {
 
   // Control smart light based on mood color
   const handleControlSmartLight = async () => {
-    await fetch("https://potipress.com/flaskapp/update-color", {
+    await fetch(`${process.env.API_URL}/update-color`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ color: moodColor }),

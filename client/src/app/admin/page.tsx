@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import Layout from "@/components/Layout";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
 
@@ -16,7 +15,6 @@ interface UserStat {
   email: string;
   token: string;
   totalRequests: number;
-  remainingRequests?: number; // Optional: Add remaining requests field
 }
 
 const AdminDashboard: React.FC = () => {
@@ -28,7 +26,8 @@ const AdminDashboard: React.FC = () => {
   useEffect(() => {
     const fetchApiData = async () => {
       try {
-        const response = await fetch("https://potipress.com/flaskapp/process", {
+        // Adjust the endpoint to the correct one that retrieves API stats
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/stats`, {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         });
@@ -53,7 +52,6 @@ const AdminDashboard: React.FC = () => {
   }, []);
 
   return (
-    <Layout>
       <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
         <Card className="w-full max-w-2xl bg-white shadow-md rounded-lg">
           <CardHeader>
@@ -128,7 +126,6 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-    </Layout>
   );
 };
 
