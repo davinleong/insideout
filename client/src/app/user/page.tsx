@@ -15,13 +15,10 @@ export default function UserLandingPage() {
   const [responseMessage, setResponseMessage] = useState("");
   const [moodColor, setMoodColor] = useState(""); // Color data for smart light
   const [loading, setLoading] = useState(false); // Tracks loading status
-  const [userId, setUser] = useState<string>("Guest"); // State to store user information
+  const [userEmail, setUserEmail] = useState<string>("Guest"); // State to store user information (userId = email)
+  const [userId, setUserId] = useState<number>(0); // State to store user information
 
   const router = useRouter();
-
-  // let userId = "Guest"; // Replace with actual user ID as needed
-
-  const constantText = "read my emotion"; // Constant text for the API requirement
 
   // Handle image upload and convert to base64
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,7 +51,8 @@ export default function UserLandingPage() {
       }
   
       const data = await response.json();
-      setUser(data.info.email);
+      setUserEmail(data.info.email);
+      setUserId(data.info.id);
       console.log("Verification response:", data);
   
       try {
@@ -114,7 +112,6 @@ export default function UserLandingPage() {
     const payload = {
       // eslint-disable-next-line @typescript-eslint/camelcase
       user_id: userId,
-      text: constantText, // Use constant text for the API
       image: imageFile,
     };
 
@@ -187,7 +184,7 @@ export default function UserLandingPage() {
       </p>
 
       <p className="text-center">
-        <strong>Current User:</strong> {userId}
+        <strong>Current User:</strong> {userEmail}
       </p>
 
       <p className="text-center">
