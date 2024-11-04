@@ -49,13 +49,30 @@ export default function UserLandingPage() {
         }
       );
       if (response.status !== 200) {
-       router.push("/login");
-       return;
+        router.push("/login");
+        return;
       }
 
       const data = await response.json();
       setUser(data.info.email);
       console.log("Verification response:", data);
+
+      try {
+        const userStatsResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${data.info.id}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log(userStatsResponse);
+        setApiCount(data.info.api_count);
+      } catch (error) {
+        console.error("Error fetching user stats:", error);
+      }
+
       // Handle verification response here
     } catch (error) {
       console.error("Error:", error);
@@ -73,51 +90,54 @@ export default function UserLandingPage() {
       alert(strings.maxApiCallsReached);
       return;
     }
-  
+
     setLoading(true); // Start loading
-  
+
     const payload = {
       // eslint-disable-next-line @typescript-eslint/camelcase
       user_id: userId,
       text: constantText, // Use constant text for the API
       image: imageFile,
     };
-  
+
     try {
       console.log("Sending payload:", payload);
       console.log(process.env.API_URL);
-  
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/process`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-  
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/process`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
       console.log("Received response:", response);
-  
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-  
+
       const responseText = await response.text();
       console.log("Received response text:", responseText);
-  
+
       if (!responseText) {
         throw new Error("Empty response body");
       }
-  
+
       const {
         response: moodResponse,
         color,
         api_count,
         max_reached,
       } = JSON.parse(responseText);
-  
+
       setApiCount(api_count);
       setMaxReached(max_reached);
       setResponseMessage(moodResponse);
       setMoodColor(color);
-  
+
       if (max_reached) {
         alert(strings.maxApiCallsAlert);
       }
