@@ -71,7 +71,7 @@ const AdminDashboard: React.FC = () => {
         // }
 
         // Fetch all user information
-        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user`, {
+        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/users`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -86,7 +86,7 @@ const AdminDashboard: React.FC = () => {
 
         // Fetch API stats for each user
         const userStatsPromises = users.map(async (user: { id: string; email: string}) => {
-          const userStatsResponse = await fetch(`${process.env.API_URL}/api_count?user_id=${user.id}`, {
+          const userStatsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${user.id}`, {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
