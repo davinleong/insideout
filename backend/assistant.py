@@ -159,7 +159,7 @@ assistant = Assistant()
 user_api_counts = {}
 
 @app.route('/process', methods=['POST'])
-@token_required
+# @token_required
 def process_request():
     data = request.get_json()
     user_id = data.get('user_id')
@@ -203,7 +203,7 @@ def process_request():
     })
 
 @app.route('/api_count', methods=['GET'])
-@token_required
+# @token_required
 def get_api_count():
     user_id = request.args.get('user_id')
     if not user_id:
