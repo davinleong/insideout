@@ -4,7 +4,6 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-
 import { FormEvent, useState } from "react";
 
 export default function Register() {
@@ -18,18 +17,21 @@ export default function Register() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setLoading(true);
+
     if (!email || !password || !confirmPassword) {
       setMessage("All fields are required");
       setMessageType("error");
       setLoading(false);
       return;
     }
+
     if (password !== confirmPassword) {
       setMessage("Passwords do not match");
       setMessageType("error");
       setLoading(false);
       return;
     }
+
     // Handle form submission logic here
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_USER_DATABASE}/register`,
@@ -45,12 +47,11 @@ export default function Register() {
     if (response.ok) {
       setMessage(`Successful registration for Email: ${email}`);
       setMessageType("success");
-      // Handle successful registration (e.g., redirect to login page)
+      // You can redirect to login here if needed
     } else {
       const errorData = await response.json();
       setMessage(`Registration failed: ${errorData.message}`);
       setMessageType("error");
-      // Handle registration error (e.g., display error message)
     }
     setLoading(false);
   };
@@ -93,7 +94,7 @@ export default function Register() {
           </p>
         )}
         <Button variant="secondary" className="text-xl">
-          <Link href="/dashboard/" className="flex items-center">
+          <Link href="/" className="flex items-center">
             Back
           </Link>
         </Button>

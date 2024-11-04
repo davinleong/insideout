@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 import subprocess
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -9,13 +10,21 @@ import numpy as np
 import cv2
 import sqlite3
 from flask_swagger_ui import get_swaggerui_blueprint
+import jwt
+from functools import wraps
+from dotenv import load_dotenv
 
-app = Flask(__name__)
+load_dotenv()
+
+app = Flask(__name__, static_url_path='/static')
 CORS(app)
 
+# Load environment variables
+JWT_SECRET = os.getenv('JWT_SECRET')
+
 # Configure Swagger UI
-SWAGGER_URL = '/flaskapp/docs'
-API_URL = '/flaskapp/static/swagger.yml'
+SWAGGER_URL = '/docs'
+API_URL = '/static/swagger.yml'
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -30,7 +39,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 # Route for serving swagger.yml
-@app.route('/flaskapp/static/swagger.yml')
+@app.route('/static/swagger.yml')
 def send_swagger_yml():
     return send_from_directory('static', 'swagger.yml')
 
@@ -47,6 +56,28 @@ def init_db():
     conn.close()
 
 init_db()
+
+# JWT token validation decorator
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = None
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            parts = auth_header.split()
+            if len(parts) == 2 and parts[0] == 'Bearer':
+                token = parts[1]
+        if not token:
+            return jsonify({'message': 'Token is missing!'}), 401
+        try:
+            data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return jsonify({'message': 'Token has expired!'}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({'message': 'Invalid token!'}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 class Assistant:
     def __init__(self):
         self.emotion_color_map = {
@@ -92,7 +123,7 @@ class Assistant:
             print("DeepFace Result:", result)
 
             if isinstance(result, list):
-                result = result[0]  # Get the first dictionary from the list
+                result = result[0]
 
             emotion = result['dominant_emotion'].lower()
             print("Detected Emotion:", emotion)
@@ -106,8 +137,8 @@ class Assistant:
             return {"emotion": "Unknown", "color": "Unknown"}
 
     def _generate_response(self, prompt):
-        # ollama_path = "/usr/local/bin/ollama" # to use in the local environment
-        ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama"
+        # ollama_path = "/usr/local/bin/ollama" # local environment
+        ollama_path = "/home/linuxbrew/.linuxbrew/bin/ollama" # production environment
         try:
             result = subprocess.run(
                 [ollama_path, "run", "llama3.2:1b"],
@@ -128,6 +159,7 @@ assistant = Assistant()
 user_api_counts = {}
 
 @app.route('/process', methods=['POST'])
+# @token_required
 def process_request():
     data = request.get_json()
     user_id = data.get('user_id')
@@ -137,6 +169,9 @@ def process_request():
         return jsonify({'error': 'User ID not provided.'}), 400
     if not image_base64:
         return jsonify({'error': 'No image provided.'}), 400
+    
+    # Ensure user_id is a string
+    user_id = str(user_id)
 
     # Update API call count for the user
     conn = sqlite3.connect('api_counts.db')
@@ -171,10 +206,14 @@ def process_request():
     })
 
 @app.route('/api_count', methods=['GET'])
+# @token_required
 def get_api_count():
     user_id = request.args.get('user_id')
     if not user_id:
         return jsonify({'error': 'User ID not provided.'}), 400
+
+    # Ensure user_id is a string
+    user_id = str(user_id)
 
     conn = sqlite3.connect('api_counts.db')
     cursor = conn.cursor()
@@ -184,13 +223,14 @@ def get_api_count():
 
     if result:
         api_count = result[0]
+        print(f"Found api_count for user_id {user_id}: {api_count}")
     else:
         api_count = 0
+        print(f"No api_count found for user_id {user_id}. Setting api_count to 0.")
 
     conn.close()
 
     return jsonify({'api_count': api_count})
-
 
 
 if __name__ == '__main__':

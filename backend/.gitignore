@@ -13,3 +13,4 @@ dist/
 eggs/
 *.egg-info/
 .db
+.env

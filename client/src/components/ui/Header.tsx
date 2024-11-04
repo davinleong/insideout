@@ -1,7 +1,19 @@
-// src/components/ui/Header.tsx
+"use client";
+
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 export default function Header() {
+  const router = useRouter();
+
+  const handleLogout = () => {
+    // Clear the `authToken` cookie by setting it with an expired date
+    document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+    // Redirect to the login page
+    router.push("/dashboard/login");
+  };
+
   return (
     <header className="w-full bg-black py-6 text-white shadow-md">
       <div className="container mx-auto px-4">
@@ -18,6 +30,13 @@ export default function Header() {
           <Button asChild variant="ghost" className="hover:bg-gray-700 text-white transition-colors">
             <a href="/settings">Settings</a>
           </Button>
+          {/* <Button
+            onClick={handleLogout}
+            variant="ghost"
+            className="hover:bg-gray-700 text-white transition-colors"
+          >
+            Logout
+          </Button> */}
         </nav>
       </div>
     </header>
