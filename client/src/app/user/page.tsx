@@ -73,35 +73,51 @@ export default function UserLandingPage() {
       alert(strings.maxApiCallsReached);
       return;
     }
-
+  
     setLoading(true); // Start loading
-
+  
     const payload = {
       // eslint-disable-next-line @typescript-eslint/camelcase
       user_id: userId,
       text: constantText, // Use constant text for the API
       image: imageFile,
     };
-
+  
     try {
-      const response = await fetch(`${process.env.API_URL}`, {
+      console.log("Sending payload:", payload);
+      console.log(process.env.API_URL);
+  
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/process`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
-      // eslint-disable-next-line @typescript-eslint/camelcase
+  
+      console.log("Received response:", response);
+  
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+  
+      const responseText = await response.text();
+      console.log("Received response text:", responseText);
+  
+      if (!responseText) {
+        throw new Error("Empty response body");
+      }
+  
       const {
         response: moodResponse,
         color,
         api_count,
         max_reached,
-      } = await response.json();
+      } = JSON.parse(responseText);
+  
       setApiCount(api_count);
       setMaxReached(max_reached);
       setResponseMessage(moodResponse);
       setMoodColor(color);
-
+  
       if (max_reached) {
         alert(strings.maxApiCallsAlert);
       }
@@ -113,15 +129,15 @@ export default function UserLandingPage() {
   };
 
   // Control smart light based on mood color
-  const handleControlSmartLight = async () => {
-    await fetch(`${process.env.API_URL}/update-color`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ color: moodColor }),
-    });
+  // const handleControlSmartLight = async () => {
+  //   await fetch(`${process.env.API_URL}/update-color`, {
+  //     method: "POST",
+  //     headers: { "Content-Type": "application/json" },
+  //     body: JSON.stringify({ color: moodColor }),
+  //   });
 
-    alert(strings.smartLightUpdatedAlert);
-  };
+  //   alert(strings.smartLightUpdatedAlert);
+  // };
 
   return (
     <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
@@ -163,7 +179,7 @@ export default function UserLandingPage() {
         {moodColor && (
           <Button
             variant="secondary"
-            onClick={handleControlSmartLight}
+            // onClick={handleControlSmartLight}
             className="w-full"
           >
             {strings.updateLightColorButton}
