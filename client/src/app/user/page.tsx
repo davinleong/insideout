@@ -67,8 +67,14 @@ export default function UserLandingPage() {
             },
           }
         );
-        console.log(userStatsResponse);
-        setApiCount(data.info.api_count);
+
+        if (!userStatsResponse.ok) {
+          throw new Error(`HTTP error! status: ${userStatsResponse.status}`);
+        }
+
+        const userStatsData = await userStatsResponse.json();
+        console.log(userStatsData);
+        setApiCount(userStatsData.api_count);
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
