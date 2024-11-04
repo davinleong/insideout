@@ -52,11 +52,11 @@ export default function UserLandingPage() {
         router.push("/login");
         return;
       }
-
+  
       const data = await response.json();
       setUser(data.info.email);
       console.log("Verification response:", data);
-
+  
       try {
         const userStatsResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${data.info.id}`,
@@ -67,18 +67,30 @@ export default function UserLandingPage() {
             },
           }
         );
-
+  
         if (!userStatsResponse.ok) {
           throw new Error(`HTTP error! status: ${userStatsResponse.status}`);
         }
-
+  
+        // Log the raw response object
+        console.log("Raw user stats response:", userStatsResponse);
+  
+        // Parse the JSON data from the response
         const userStatsData = await userStatsResponse.json();
-        console.log(userStatsData);
+  
+        // Log the parsed JSON data
+        console.log("Parsed user stats data:", userStatsData);
+  
+        // Check if api_count is a valid number
+        if (typeof userStatsData.api_count !== 'number') {
+          throw new Error(`Invalid api_count value: ${userStatsData.api_count}`);
+        }
+  
         setApiCount(userStatsData.api_count);
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
-
+  
       // Handle verification response here
     } catch (error) {
       console.error("Error:", error);
