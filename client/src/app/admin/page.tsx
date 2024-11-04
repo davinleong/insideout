@@ -71,7 +71,7 @@ const AdminDashboard: React.FC = () => {
         // }
 
         // Fetch all user information
-        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/user`, {
+        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/users`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
