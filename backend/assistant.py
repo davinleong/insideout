@@ -169,6 +169,9 @@ def process_request():
         return jsonify({'error': 'User ID not provided.'}), 400
     if not image_base64:
         return jsonify({'error': 'No image provided.'}), 400
+    
+    # Ensure user_id is a string
+    user_id = str(user_id)
 
     # Update API call count for the user
     conn = sqlite3.connect('api_counts.db')
@@ -209,6 +212,9 @@ def get_api_count():
     if not user_id:
         return jsonify({'error': 'User ID not provided.'}), 400
 
+    # Ensure user_id is a string
+    user_id = str(user_id)
+
     conn = sqlite3.connect('api_counts.db')
     cursor = conn.cursor()
 
@@ -217,8 +223,10 @@ def get_api_count():
 
     if result:
         api_count = result[0]
+        print(f"Found api_count for user_id {user_id}: {api_count}")
     else:
         api_count = 0
+        print(f"No api_count found for user_id {user_id}. Setting api_count to 0.")
 
     conn.close()
 
