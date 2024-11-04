@@ -1,11 +1,8 @@
-// require('dotenv').config();
-import 'dotenv/config';
-// const http = require("http");
-// const RequestHandler = require('./classes/requestHandler.js');
-import RequestHandler from './classes/requestHandler.js';
-import { createClient } from '@supabase/supabase-js';
+require('dotenv/config');
+const RequestHandler = require('./classes/requestHandler.js');
+const { createClient } = require('@supabase/supabase-js');
 
-import http from 'http';
+const http = require('http');
 
 const API_VERSION = 'v1';
 
@@ -25,9 +22,9 @@ class Server {
 const dbServer = new Server(requestHandler);
 
 // local host test
-dbServer.server.listen(1337, () => {
-  console.log("Server is listening on port 1337");
-});
+// dbServer.server.listen(1337, () => {
+//   console.log("Server is listening on port 1337");
+// });
 
 // live server
-// dbServer.server.listen();
+dbServer.server.listen();
