@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emotion Light Control</title>
+  <script type="module" src="app.js"></script>
+  <style>
+    /* Styles for color preview box */
+    #colorPreview {
+      width: 100px;
+      height: 100px;
+      margin-top: 10px;
+      background-color: #fff;
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Emotion Light Control</h1>
+
+  <!-- Select Emotion Section -->
+  <div>
+    <label for="emotionSelect">Select Emotion:</label>
+    <select id="emotionSelect" onchange="updateColorPreview()">
+      <option value="angry">Angry</option>
+      <option value="happy">Happy</option>
+      <option value="sad">Sad</option>
+      <option value="fear">Fear</option>
+      <option value="disgust">Disgust</option>
+      <option value="neutral">Neutral</option>
+      <option value="surprise">Surprise</option>
+    </select>
+    <button onclick="setEmotionLight()">Set Light</button>
+    <p id="setEmotionMessage"></p>
+  </div>
+
+  <!-- Color Preview Box -->
+  <div id="colorPreview"></div>
+
+  <hr>
+
+  <!-- Customize Emotion Colors Section with Color Picker -->
+  <h2>Customize Emotion Colors</h2>
+  <div>
+    <label for="customEmotionSelect">Select Emotion to Customize:</label>
+    <select id="customEmotionSelect" onchange="updateColorPreviewForCustom()">
+      <option value="angry">Angry</option>
+      <option value="happy">Happy</option>
+      <option value="sad">Sad</option>
+      <option value="fear">Fear</option>
+      <option value="disgust">Disgust</option>
+      <option value="neutral">Neutral</option>
+      <option value="surprise">Surprise</option>
+    </select>
+  </div>
+
+  <!-- Color Picker Input -->
+  <div>
+    <label for="colorPicker">Pick Color:</label>
+    <input type="color" id="colorPicker" value="#ffffff" oninput="updateRGBInputs(this.value)">
+  </div>
+
+  <!-- Hidden RGB Inputs for Customization Logic -->
+  <div style="display: none;">
+    <label>Red:</label>
+    <input type="number" id="red" min="0" max="255" value="255">
+    <label>Green:</label>
+    <input type="number" id="green" min="0" max="255" value="255">
+    <label>Blue:</label>
+    <input type="number" id="blue" min="0" max="255" value="255">
+  </div>
+  
+  <button onclick="customizeEmotionColor()">Save Color</button>
+  <p id="customizeMessage"></p>
+
+  <script>
+    // Convert hex color to RGB and update hidden RGB inputs
+    function updateRGBInputs(hex) {
+      const bigint = parseInt(hex.slice(1), 16);
+      const r = (bigint >> 16) & 255;
+      const g = (bigint >> 8) & 255;
+      const b = bigint & 255;
+
+      document.getElementById("red").value = r;
+      document.getElementById("green").value = g;
+      document.getElementById("blue").value = b;
+
+      // Update color preview box for the custom color selection
+      document.getElementById("colorPreview").style.backgroundColor = hex;
+    }
+
+    // Update color preview based on selected emotion
+    function updateColorPreview() {
+      const emotion = document.getElementById("emotionSelect").value;
+      const colors = {
+        angry: "#FF0000",
+        happy: "#00FF00",
+        sad: "#0000FF",
+        fear: "#800080",
+        disgust: "#8B4513",
+        neutral: "#808080",
+        surprise: "#FFFF00"
+      };
+      document.getElementById("colorPreview").style.backgroundColor = colors[emotion] || "#FFFFFF";
+    }
+
+    // Update color preview based on selected custom emotion color
+    function updateColorPreviewForCustom() {
+      const hexColor = document.getElementById("colorPicker").value;
+      document.getElementById("colorPreview").style.backgroundColor = hexColor;
+    }
+  </script>
+
+<script src="app.js"></script>
+</body>
+</html>
