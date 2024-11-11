@@ -9,7 +9,6 @@ from deepface import DeepFace
 from PIL import Image
 import numpy as np
 import cv2
-# import sqlite3
 from flask_swagger_ui import get_swaggerui_blueprint
 import jwt
 from functools import wraps
@@ -193,9 +192,16 @@ def create_emotion():
     if not user_id or not emotion or not rgb:
         status_code = 400
         record_api_call(user_id, http_method, endpoint, status_code)
-        return jsonify({'error': 'Missing user ID, emotion or RGB value'}), 400
+        return jsonify({'error': 'Missing user ID, emotion or RGB value'}), 400        
 
     try:
+        check_response = supabase.table('emotions').select('*').eq('user_id', user_id).eq('emotion', emotion).execute()
+        
+        if check_response.data:
+            status_code = 409
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'error': 'Emotion already exists for this user.'}), 409
+
         response = supabase.table('emotions').insert({
             'user_id': user_id,
             'emotion': emotion,
@@ -213,6 +219,96 @@ def create_emotion():
         record_api_call(user_id, http_method, endpoint, status_code)
         print(f"Error inserting emotion: {e}")
         return jsonify({'error': 'Failed to add emotion', 'details': str(e)}), 500
+
+@app.route(f'/{API_VERSION}/emotions/<emotion>', methods=['GET'])
+def get_emotion(emotion):
+    user_id = request.args.get('user_id')
+    endpoint = f"https://potipress.com/api/{API_VERSION}/emotions/{emotion}"
+    http_method = "GET"
+
+    if not user_id:
+        status_code = 400
+        record_api_call(user_id, http_method, endpoint, status_code)
+        return jsonify({'error': 'User ID not provided.'}), 400
+
+    try:
+        response = supabase.table('emotions').select('rgb').eq('user_id', user_id).eq('emotion', emotion).execute()
+        data = response.data
+
+        if data:
+            rgb = data[0]['rgb']
+            status_code = 200
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'emotion': emotion, 'rgb': rgb}), 200
+        else:
+            status_code = 404
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'error': 'Emotion not found.'}), 404
+    except Exception as e:
+        status_code = 500
+        record_api_call(user_id, http_method, endpoint, status_code)
+        print(f"Error retrieving emotion: {e}")
+        return jsonify({'error': 'Failed to retrieve emotion', 'details': str(e)}), 500
+
+@app.route(f'/{API_VERSION}/emotions/<emotion>', methods=['PATCH'])
+def update_emotion(emotion):
+    data = request.get_json()
+    user_id = data.get('user_id')
+    rgb = data.get('rgb')
+    endpoint = f"https://potipress.com/api/{API_VERSION}/emotions/{emotion}"
+    http_method = "PATCH"
+
+    if not user_id or rgb is None:
+        status_code = 400
+        record_api_call(user_id, http_method, endpoint, status_code)
+        return jsonify({'error': 'Missing user ID or RGB value.'}), 400
+
+    try:
+        response = supabase.table('emotions').update({'rgb': rgb}).eq('user_id', user_id).eq('emotion', emotion).execute()
+        data = response.data
+
+        if data:
+            status_code = 200
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'message': 'Emotion RGB updated.'}), 200
+        else:
+            status_code = 404
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'error': 'Emotion not found.'}), 404
+    except Exception as e:
+        status_code = 500
+        record_api_call(user_id, http_method, endpoint, status_code)
+        print(f"Error updating emotion: {e}")
+        return jsonify({'error': 'Failed to update emotion', 'details': str(e)}), 500
+
+@app.route(f'/{API_VERSION}/emotions/<emotion>', methods=['DELETE'])
+def delete_emotion(emotion):
+    user_id = request.args.get('user_id')
+    endpoint = f"https://potipress.com/api/{API_VERSION}/emotions/{emotion}"
+    http_method = "DELETE"
+
+    if not user_id:
+        status_code = 400
+        record_api_call(user_id, http_method, endpoint, status_code)
+        return jsonify({'error': 'User ID not provided.'}), 400
+
+    try:
+        response = supabase.table('emotions').delete().eq('user_id', user_id).eq('emotion', emotion).execute()
+        data = response.data
+
+        if data:
+            status_code = 200
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'message': 'Emotion deleted.'}), 200
+        else:
+            status_code = 404
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'error': 'Emotion not found.'}), 404
+    except Exception as e:
+        status_code = 500
+        record_api_call(user_id, http_method, endpoint, status_code)
+        print(f"Error deleting emotion: {e}")
+        return jsonify({'error': 'Failed to delete emotion', 'details': str(e)}), 500
 
 def record_api_call(user_id, http_method, endpoint, status_code):
     try:
