@@ -3,6 +3,7 @@ import http
 import io
 import os
 import subprocess
+from tabnanny import check
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from deepface import DeepFace
@@ -32,7 +33,7 @@ JWT_SECRET = os.getenv('JWT_SECRET')
 
 # Configure Swagger UI
 SWAGGER_URL = '/docs'
-API_URL = '/static/swagger.yml'
+API_URL = '/static/swagger2.yml'
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -84,7 +85,7 @@ class Assistant:
             "surprise": "Yellow"
         }
 
-    def answer(self, image_base64):    
+    def answer(self, image_base64, user_id):    
         print("Length of image_base64:", len(image_base64))
 
         # Decode image
@@ -98,20 +99,20 @@ class Assistant:
             return "Failed to decode image.", "Unknown"
 
         # Detect emotion
-        emotion_color = self.detect_emotion(frame)
+        emotion_color = self.detect_emotion(frame, user_id)
         detected_emotion = emotion_color['emotion']
 
         if detected_emotion != "Unknown":
             prompt_for_llm = f"Respond empathetically to someone feeling {detected_emotion.lower()}."
             llm_response = self._generate_response(prompt_for_llm)
-            emotion_response = f"I detect that you are feeling {detected_emotion}. The color associated with this emotion is {emotion_color['color']}. {llm_response}"
+            emotion_response = f"I detect that you are feeling {detected_emotion}. The color code associated with this emotion is {emotion_color['color']}. {llm_response}"
         else:
             emotion_response = "I'm sorry, I'm unable to detect your emotion at the moment. Could you try again?"
         
         print("Emotion Response:", emotion_response)
         return emotion_response, emotion_color['color']
             
-    def detect_emotion(self, frame):
+    def detect_emotion(self, frame, user_id):
         try:
             result = DeepFace.analyze(frame, actions=['emotion'], enforce_detection=False)
             print("DeepFace Result:", result)
@@ -122,10 +123,19 @@ class Assistant:
             emotion = result['dominant_emotion'].lower()
             print("Detected Emotion:", emotion)
 
-            color = self.emotion_color_map.get(emotion, "Unknown")
-            print("Mapped Color:", color)
-
-            return {"emotion": emotion.capitalize(), "color": color}
+            if emotion in self.emotion_color_map:
+                emotion_data = check_emotion_exists(user_id, emotion)
+                if emotion_data:
+                    color = emotion_data[0]['rgb']
+                    print("Custom Color for User:", color)
+                else:
+                    color = self.emotion_color_map[emotion]
+                    print("Default Color:", color)
+                return {"emotion": emotion.capitalize(), "color": color}
+            else:
+                # Emotion is not one of the seven basic emotions
+                print("Emotion not recognized among the basic emotions.")
+                return {"emotion": "Unknown", "color": "Unknown"}
         except Exception as e:
             print("Error in emotion detection:", e)
             return {"emotion": "Unknown", "color": "Unknown"}
@@ -168,7 +178,7 @@ def process_request():
         return jsonify({'error': 'No image provided.'}), 400
     
     try:
-        response_text, color = assistant.answer(image_base64)
+        response_text, color = assistant.answer(image_base64, user_id)
         record_api_call(user_id, http_method, endpoint, 200)
         return jsonify({
             'response': response_text,
@@ -324,6 +334,9 @@ def record_api_call(user_id, http_method, endpoint, status_code):
     except Exception as e:
         print(f"Error inserting API call into Supabase: {e}")
 
+def check_emotion_exists(user_id, emotion):
+    response = supabase.table('emotions').select('*').eq('user_id', user_id).eq('emotion', emotion).execute()
+    return response.data
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8282)
