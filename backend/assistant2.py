@@ -11,7 +11,6 @@ from PIL import Image
 import numpy as np
 import cv2
 from flask_swagger_ui import get_swaggerui_blueprint
-import jwt
 from functools import wraps
 from dotenv import load_dotenv
 import os
@@ -32,8 +31,8 @@ API_VERSION = "v1"
 JWT_SECRET = os.getenv('JWT_SECRET')
 
 # Configure Swagger UI
-SWAGGER_URL = '/docs'
-API_URL = '/static/swagger2.yml'
+SWAGGER_URL = '/api/docs'
+API_URL = '/static/swagger.yml'
 
 # Call factory function to create our blueprint
 swaggerui_blueprint = get_swaggerui_blueprint(
@@ -52,37 +51,16 @@ app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 def send_swagger_yml():
     return send_from_directory('static', 'swagger.yml')
 
-# JWT token validation decorator
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        if 'Authorization' in request.headers:
-            auth_header = request.headers['Authorization']
-            parts = auth_header.split()
-            if len(parts) == 2 and parts[0] == 'Bearer':
-                token = parts[1]
-        if not token:
-            return jsonify({'message': 'Token is missing!'}), 401
-        try:
-            data = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-        except jwt.ExpiredSignatureError:
-            return jsonify({'message': 'Token has expired!'}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({'message': 'Invalid token!'}), 401
-        return f(*args, **kwargs)
-    return decorated
-
 class Assistant:
     def __init__(self):
         self.emotion_color_map = {
-            "angry": "Red",
-            "happy": "Green",
-            "sad": "Blue",
-            "fear": "Purple",
-            "disgust": "Brown",
-            "neutral": "Gray",
-            "surprise": "Yellow"
+            "angry": 16711680,     # Red (255, 0, 0)
+            "happy": 65280,        # Green (0, 255, 0)
+            "sad": 255,           # Blue (0, 0, 255)
+            "fear": 8388736,      # Purple (128, 0, 128)
+            "disgust": 9127187,    # Brown (139, 69, 19)
+            "neutral": 8421504,    # Gray (128, 128, 128)
+            "surprise": 16776960   # Yellow (255, 255, 0)
         }
 
     def answer(self, image_base64, user_id):    
@@ -162,7 +140,6 @@ class Assistant:
 assistant = Assistant()
 
 @app.route(f'/{API_VERSION}/process', methods=['POST'])
-# @token_required
 def process_request():
     data = request.get_json()
     user_id = data.get('user_id')
