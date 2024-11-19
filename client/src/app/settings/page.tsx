@@ -7,12 +7,24 @@ import { Button } from "@/components/ui/button";
 
 export default function EmotionSettingsPage() {
   const [userId, setUserId] = useState<string>("60"); // Replace with actual user ID logic
-  const [emotion, setEmotion] = useState<string>(""); // Current emotion
-  const [rgb, setRgb] = useState<string>(""); // RGB value in decimal format
+
+  // Separate states for each operation
+  const [createEmotionValue, setCreateEmotionValue] = useState<string>("");
+  const [createRgbValue, setCreateRgbValue] = useState<string>("");
+
+  const [getEmotionValue, setGetEmotionValue] = useState<string>("");
+
+  const [updateEmotionValue, setUpdateEmotionValue] = useState<string>("");
+  const [updateRgbValue, setUpdateRgbValue] = useState<string>("");
+
+  const [deleteEmotionValue, setDeleteEmotionValue] = useState<string>("");
+
   const [message, setMessage] = useState<string>(""); // Response message
+  const [loading, setLoading] = useState<string | null>(null); // Tracks loading status per action
 
   // Helper function for API call to create an emotion
   const createEmotion = async (emotion: string, rgb: string) => {
+    setLoading("create");
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/emotions`, {
         method: "POST",
@@ -23,19 +35,22 @@ export default function EmotionSettingsPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to create emotion.");
       }
 
       const data = await response.json();
-      setMessage(`Emotion created successfully: ${data.message}`);
+      setMessage(`✅ Emotion "${emotion}" created successfully.`);
     } catch (error) {
       console.error("Error creating emotion:", error);
-      setMessage("Error creating emotion.");
+      setMessage("❌ Error creating emotion.");
+    } finally {
+      setLoading(null);
     }
   };
 
   // Helper function to get RGB for a specific emotion
   const getEmotionRGB = async (emotion: string) => {
+    setLoading("get");
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}?user_id=${userId}`,
@@ -48,20 +63,22 @@ export default function EmotionSettingsPage() {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to retrieve RGB value.");
       }
 
       const data = await response.json();
-      setRgb(data.rgb); // Set the RGB value
-      setMessage(`Retrieved RGB value for emotion "${emotion}": ${data.rgb}`);
+      setMessage(`✅ Retrieved RGB value for emotion "${emotion}": ${data.rgb}`);
     } catch (error) {
       console.error("Error retrieving emotion RGB value:", error);
-      setMessage("Error retrieving emotion RGB value.");
+      setMessage("❌ Error retrieving emotion RGB value.");
+    } finally {
+      setLoading(null);
     }
   };
 
   // Helper function to update RGB for a specific emotion
   const updateEmotionRGB = async (emotion: string, newRgb: string) => {
+    setLoading("update");
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}`,
@@ -75,19 +92,22 @@ export default function EmotionSettingsPage() {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to update RGB value.");
       }
 
       const data = await response.json();
-      setMessage(`Emotion RGB updated successfully: ${data.message}`);
+      setMessage(`✅ RGB value for "${emotion}" updated successfully.`);
     } catch (error) {
-      console.error("Error updating emotion RGB value:", error);
-      setMessage("Error updating emotion RGB value.");
+      console.error("Error updating RGB value:", error);
+      setMessage("❌ Error updating RGB value.");
+    } finally {
+      setLoading(null);
     }
   };
 
   // Helper function to delete a specific emotion
   const deleteEmotion = async (emotion: string) => {
+    setLoading("delete");
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}?user_id=${userId}`,
@@ -100,70 +120,129 @@ export default function EmotionSettingsPage() {
       );
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error("Failed to delete emotion.");
       }
 
-      setMessage(`Emotion "${emotion}" deleted successfully.`);
+      setMessage(`✅ Emotion "${emotion}" deleted successfully.`);
     } catch (error) {
       console.error("Error deleting emotion:", error);
-      setMessage("Error deleting emotion.");
+      setMessage("❌ Error deleting emotion.");
+    } finally {
+      setLoading(null);
     }
   };
 
   return (
-    <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 text-center">
-        Manage Emotions
-      </h1>
-      <div className="flex flex-col gap-4 w-full max-w-md items-center">
+    <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-6">
+      {/* Sticky Notification */}
+      {message && (
+        <div
+          className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 p-4 rounded shadow ${
+            message.startsWith("✅")
+              ? "bg-green-500 text-white"
+              : "bg-red-500 text-white"
+          }`}
+          style={{ zIndex: 1000 }}
+        >
+          <p>{message}</p>
+        </div>
+      )}
+
+      <h1 className="text-2xl md:text-3xl font-bold text-center">Manage Emotions</h1>
+
+      {/* Create Emotion Section */}
+      <section className="w-full max-w-md p-4 bg-white shadow rounded">
+        <h2 className="text-lg font-semibold mb-2">Create New Emotion</h2>
         <input
           type="text"
           placeholder="Enter emotion"
-          value={emotion}
-          onChange={(e) => setEmotion(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded"
+          value={createEmotionValue}
+          onChange={(e) => setCreateEmotionValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-2"
         />
         <input
           type="text"
           placeholder="Enter RGB value (decimal)"
-          value={rgb}
-          onChange={(e) => setRgb(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded"
+          value={createRgbValue}
+          onChange={(e) => setCreateRgbValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-4"
         />
         <Button
           variant="default"
-          onClick={() => createEmotion(emotion, rgb)}
+          onClick={() => createEmotion(createEmotionValue, createRgbValue)}
+          disabled={loading === "create"}
           className="w-full"
         >
-          Create Emotion
+          {loading === "create" ? "Creating..." : "Create Emotion"}
         </Button>
+      </section>
+
+      {/* Get Emotion RGB Section */}
+      <section className="w-full max-w-md p-4 bg-white shadow rounded">
+        <h2 className="text-lg font-semibold mb-2">Get Emotion RGB</h2>
+        <input
+          type="text"
+          placeholder="Enter emotion"
+          value={getEmotionValue}
+          onChange={(e) => setGetEmotionValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-4"
+        />
         <Button
           variant="default"
-          onClick={() => getEmotionRGB(emotion)}
+          onClick={() => getEmotionRGB(getEmotionValue)}
+          disabled={loading === "get"}
           className="w-full"
         >
-          Get Emotion RGB
+          {loading === "get" ? "Retrieving..." : "Get RGB Value"}
         </Button>
+      </section>
+
+      {/* Update Emotion RGB Section */}
+      <section className="w-full max-w-md p-4 bg-white shadow rounded">
+        <h2 className="text-lg font-semibold mb-2">Update Emotion RGB</h2>
+        <input
+          type="text"
+          placeholder="Enter emotion"
+          value={updateEmotionValue}
+          onChange={(e) => setUpdateEmotionValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-2"
+        />
+        <input
+          type="text"
+          placeholder="Enter new RGB value (decimal)"
+          value={updateRgbValue}
+          onChange={(e) => setUpdateRgbValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-4"
+        />
         <Button
           variant="default"
-          onClick={() => updateEmotionRGB(emotion, rgb)}
+          onClick={() => updateEmotionRGB(updateEmotionValue, updateRgbValue)}
+          disabled={loading === "update"}
           className="w-full"
         >
-          Update Emotion RGB
+          {loading === "update" ? "Updating..." : "Update RGB Value"}
         </Button>
+      </section>
+
+      {/* Delete Emotion Section */}
+      <section className="w-full max-w-md p-4 bg-white shadow rounded">
+        <h2 className="text-lg font-semibold mb-2">Delete Emotion</h2>
+        <input
+          type="text"
+          placeholder="Enter emotion"
+          value={deleteEmotionValue}
+          onChange={(e) => setDeleteEmotionValue(e.target.value)}
+          className="w-full p-2 border border-gray-300 rounded mb-4"
+        />
         <Button
           variant="default"
-          onClick={() => deleteEmotion(emotion)}
+          onClick={() => deleteEmotion(deleteEmotionValue)}
+          disabled={loading === "delete"}
           className="w-full"
         >
-          Delete Emotion
+          {loading === "delete" ? "Deleting..." : "Delete Emotion"}
         </Button>
-      </div>
-      {message && (
-        <div className="mt-4 p-4 bg-white shadow rounded max-w-md w-full">
-          <p>{message}</p>
-        </div>
-      )}
+      </section>
     </main>
   );
 }
