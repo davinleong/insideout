@@ -10,17 +10,22 @@ export default function EmotionSettingsPage() {
 
   // Separate states for each operation
   const [createEmotionValue, setCreateEmotionValue] = useState<string>("");
-  const [createRgbValue, setCreateRgbValue] = useState<string>("");
-
-  const [getEmotionValue, setGetEmotionValue] = useState<string>("");
+  const [createRgbValue, setCreateRgbValue] = useState<string>("#000000"); // Color picker defaults to black
 
   const [updateEmotionValue, setUpdateEmotionValue] = useState<string>("");
-  const [updateRgbValue, setUpdateRgbValue] = useState<string>("");
+  const [updateRgbValue, setUpdateRgbValue] = useState<string>("#000000");
 
+  const [getEmotionValue, setGetEmotionValue] = useState<string>("");
   const [deleteEmotionValue, setDeleteEmotionValue] = useState<string>("");
 
   const [message, setMessage] = useState<string>(""); // Response message
   const [loading, setLoading] = useState<string | null>(null); // Tracks loading status per action
+
+  // Helper function to convert hex to RGB decimal
+  const hexToDecimalRGB = (hex: string) => {
+    const parsed = parseInt(hex.replace("#", ""), 16);
+    return parsed;
+  };
 
   // Helper function for API call to create an emotion
   const createEmotion = async (emotion: string, rgb: string) => {
@@ -31,7 +36,7 @@ export default function EmotionSettingsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ user_id: userId, emotion, rgb }),
+        body: JSON.stringify({ user_id: userId, emotion, rgb: hexToDecimalRGB(rgb) }),
       });
 
       if (!response.ok) {
@@ -63,11 +68,11 @@ export default function EmotionSettingsPage() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to retrieve RGB value.");
+        throw new Error("Failed to retrieve emotion RGB value.");
       }
 
       const data = await response.json();
-      setMessage(`✅ Retrieved RGB value for emotion "${emotion}": ${data.rgb}`);
+      setMessage(`✅ Retrieved RGB value for "${emotion}": ${data.rgb}`);
     } catch (error) {
       console.error("Error retrieving emotion RGB value:", error);
       setMessage("❌ Error retrieving emotion RGB value.");
@@ -87,7 +92,7 @@ export default function EmotionSettingsPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ user_id: userId, rgb: newRgb }),
+          body: JSON.stringify({ user_id: userId, rgb: hexToDecimalRGB(newRgb) }),
         }
       );
 
@@ -153,95 +158,113 @@ export default function EmotionSettingsPage() {
       {/* Create Emotion Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Create New Emotion</h2>
-        <input
-          type="text"
-          placeholder="Enter emotion"
-          value={createEmotionValue}
-          onChange={(e) => setCreateEmotionValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Enter RGB value (decimal)"
-          value={createRgbValue}
-          onChange={(e) => setCreateRgbValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-        />
-        <Button
-          variant="default"
-          onClick={() => createEmotion(createEmotionValue, createRgbValue)}
-          disabled={loading === "create"}
-          className="w-full"
-        >
-          {loading === "create" ? "Creating..." : "Create Emotion"}
-        </Button>
+        <div className="flex flex-col gap-4">
+          <input
+            type="text"
+            placeholder="Enter emotion"
+            value={createEmotionValue}
+            onChange={(e) => setCreateEmotionValue(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+          <div className="flex items-center gap-2">
+            <label htmlFor="create-color-picker" className="text-gray-700 font-medium">
+              Pick Color:
+            </label>
+            <input
+              id="create-color-picker"
+              type="color"
+              value={createRgbValue}
+              onChange={(e) => setCreateRgbValue(e.target.value)}
+              className="w-12 h-12 border-none rounded"
+            />
+          </div>
+          <Button
+            variant="default"
+            onClick={() => createEmotion(createEmotionValue, createRgbValue)}
+            disabled={loading === "create"}
+            className="w-full"
+          >
+            {loading === "create" ? "Creating..." : "Create Emotion"}
+          </Button>
+        </div>
       </section>
 
       {/* Get Emotion RGB Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Get Emotion RGB</h2>
-        <input
-          type="text"
-          placeholder="Enter emotion"
-          value={getEmotionValue}
-          onChange={(e) => setGetEmotionValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-        />
-        <Button
-          variant="default"
-          onClick={() => getEmotionRGB(getEmotionValue)}
-          disabled={loading === "get"}
-          className="w-full"
-        >
-          {loading === "get" ? "Retrieving..." : "Get RGB Value"}
-        </Button>
+        <div className="flex flex-col gap-4">
+          <input
+            type="text"
+            placeholder="Enter emotion"
+            value={getEmotionValue}
+            onChange={(e) => setGetEmotionValue(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+          <Button
+            variant="default"
+            onClick={() => getEmotionRGB(getEmotionValue)}
+            disabled={loading === "get"}
+            className="w-full"
+          >
+            {loading === "get" ? "Retrieving..." : "Get RGB Value"}
+          </Button>
+        </div>
       </section>
 
       {/* Update Emotion RGB Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Update Emotion RGB</h2>
-        <input
-          type="text"
-          placeholder="Enter emotion"
-          value={updateEmotionValue}
-          onChange={(e) => setUpdateEmotionValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-2"
-        />
-        <input
-          type="text"
-          placeholder="Enter new RGB value (decimal)"
-          value={updateRgbValue}
-          onChange={(e) => setUpdateRgbValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-        />
-        <Button
-          variant="default"
-          onClick={() => updateEmotionRGB(updateEmotionValue, updateRgbValue)}
-          disabled={loading === "update"}
-          className="w-full"
-        >
-          {loading === "update" ? "Updating..." : "Update RGB Value"}
-        </Button>
+        <div className="flex flex-col gap-4">
+          <input
+            type="text"
+            placeholder="Enter emotion"
+            value={updateEmotionValue}
+            onChange={(e) => setUpdateEmotionValue(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+          <div className="flex items-center gap-2">
+            <label htmlFor="update-color-picker" className="text-gray-700 font-medium">
+              Pick Color:
+            </label>
+            <input
+              id="update-color-picker"
+              type="color"
+              value={updateRgbValue}
+              onChange={(e) => setUpdateRgbValue(e.target.value)}
+              className="w-12 h-12 border-none rounded"
+            />
+          </div>
+          <Button
+            variant="default"
+            onClick={() => updateEmotionRGB(updateEmotionValue, updateRgbValue)}
+            disabled={loading === "update"}
+            className="w-full"
+          >
+            {loading === "update" ? "Updating..." : "Update RGB Value"}
+          </Button>
+        </div>
       </section>
 
       {/* Delete Emotion Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Delete Emotion</h2>
-        <input
-          type="text"
-          placeholder="Enter emotion"
-          value={deleteEmotionValue}
-          onChange={(e) => setDeleteEmotionValue(e.target.value)}
-          className="w-full p-2 border border-gray-300 rounded mb-4"
-        />
-        <Button
-          variant="default"
-          onClick={() => deleteEmotion(deleteEmotionValue)}
-          disabled={loading === "delete"}
-          className="w-full"
-        >
-          {loading === "delete" ? "Deleting..." : "Delete Emotion"}
-        </Button>
+        <div className="flex flex-col gap-4">
+          <input
+            type="text"
+            placeholder="Enter emotion"
+            value={deleteEmotionValue}
+            onChange={(e) => setDeleteEmotionValue(e.target.value)}
+            className="w-full p-2 border border-gray-300 rounded"
+          />
+          <Button
+            variant="default"
+            onClick={() => deleteEmotion(deleteEmotionValue)}
+            disabled={loading === "delete"}
+            className="w-full"
+          >
+            {loading === "delete" ? "Deleting..." : "Delete Emotion"}
+          </Button>
+        </div>
       </section>
     </main>
   );
