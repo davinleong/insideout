@@ -13,12 +13,19 @@ export default function UserLandingPage() {
   const [apiCount, setApiCount] = useState(0); // Tracks remaining API calls
   const [maxReached, setMaxReached] = useState(false); // Tracks if max API calls reached
   const [responseMessage, setResponseMessage] = useState("");
-  const [moodColor, setMoodColor] = useState(""); // Color data for smart light
+  const [moodColor, setMoodColor] = useState<number>(0); // Color data for smart light
   const [loading, setLoading] = useState(false); // Tracks loading status
   const [userEmail, setUserEmail] = useState<string>("Guest"); // State to store user information (userId = email)
   const [userId, setUserId] = useState<number>(0); // State to store user information
 
   const router = useRouter();
+
+  // Helper function to convert decimal color to RGB
+  const decimalToRGB = (decimal: number) => ({
+    r: (decimal >> 16) & 0xff,
+    g: (decimal >> 8) & 0xff,
+    b: decimal & 0xff,
+  });
 
   // Handle image upload and convert to base64
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,6 +43,8 @@ export default function UserLandingPage() {
     };
   };
 
+  // Uncomment to enable user token verification and API call tracking
+  /*
   const handleUser = async () => {
     try {
       const response = await fetch(
@@ -49,12 +58,12 @@ export default function UserLandingPage() {
         router.push("/login");
         return;
       }
-  
+
       const data = await response.json();
       setUserEmail(data.info.email);
       setUserId(data.info.id);
       console.log("Verification response:", data);
-  
+
       try {
         const userStatsResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${data.info.id}`,
@@ -65,40 +74,31 @@ export default function UserLandingPage() {
             },
           }
         );
-  
+
         if (!userStatsResponse.ok) {
           throw new Error(`HTTP error! status: ${userStatsResponse.status}`);
         }
-  
-        // Log the raw response object
-        console.log("Raw user stats response:", userStatsResponse);
-  
-        // Parse the JSON data from the response
+
         const userStatsData = await userStatsResponse.json();
-  
-        // Log the parsed JSON data
         console.log("Parsed user stats data:", userStatsData);
-  
-        // Check if api_count is a valid number
-        if (typeof userStatsData.api_count !== 'number') {
+
+        if (typeof userStatsData.api_count !== "number") {
           throw new Error(`Invalid api_count value: ${userStatsData.api_count}`);
         }
-  
+
         setApiCount(userStatsData.api_count);
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
-  
-      // Handle verification response here
     } catch (error) {
       console.error("Error:", error);
     }
   };
 
-  // Run handleUser on page load
   useEffect(() => {
     handleUser();
   }, []);
+  */
 
   // Capture and analyze mood
   const handleCaptureAndAnalyzeMood = async () => {
@@ -110,14 +110,12 @@ export default function UserLandingPage() {
     setLoading(true); // Start loading
 
     const payload = {
-      // eslint-disable-next-line @typescript-eslint/camelcase
-      user_id: userId,
+      user_id: String(userId),
       image: imageFile,
     };
 
     try {
       console.log("Sending payload:", payload);
-      console.log(process.env.API_URL);
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/process`,
@@ -127,8 +125,6 @@ export default function UserLandingPage() {
           body: JSON.stringify(payload),
         }
       );
-
-      console.log("Received response:", response);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -153,6 +149,10 @@ export default function UserLandingPage() {
       setResponseMessage(moodResponse);
       setMoodColor(color);
 
+      if (color) {
+        await handleControlSmartLight(color); // Update light color
+      }
+
       if (max_reached) {
         alert(strings.maxApiCallsAlert);
       }
@@ -164,15 +164,43 @@ export default function UserLandingPage() {
   };
 
   // Control smart light based on mood color
-  // const handleControlSmartLight = async () => {
-  //   await fetch(`${process.env.API_URL}/update-color`, {
-  //     method: "POST",
-  //     headers: { "Content-Type": "application/json" },
-  //     body: JSON.stringify({ color: moodColor }),
-  //   });
+  const handleControlSmartLight = async (color: number) => {
+    const rgb = decimalToRGB(color);
+    const payload = {
+      device: process.env.NEXT_PUBLIC_GOVEE_DEVICE_ID,
+      model: process.env.NEXT_PUBLIC_GOVEE_DEVICE_MODEL,
+      cmd: {
+        name: "color",
+        value: {
+          r: rgb.r,
+          g: rgb.g,
+          b: rgb.b,
+        },
+      },
+    };
 
-  //   alert(strings.smartLightUpdatedAlert);
-  // };
+    try {
+      const response = await fetch(
+        "https://developer-api.govee.com/v1/devices/control",
+        {
+          method: "PUT",
+          headers: {
+            "Govee-API-Key": process.env.NEXT_PUBLIC_GOVEE_API_KEY || "",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Error: ${data.message}`);
+      }
+      alert(strings.smartLightUpdatedAlert);
+    } catch (error) {
+      console.error("Failed to control light:", error);
+    }
+  };
 
   return (
     <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
@@ -210,23 +238,13 @@ export default function UserLandingPage() {
         >
           {loading ? "Analyzing..." : strings.analyzeMoodButton}
         </Button>
-
-        {moodColor && (
-          <Button
-            variant="secondary"
-            // onClick={handleControlSmartLight}
-            className="w-full"
-          >
-            {strings.updateLightColorButton}
-          </Button>
-        )}
       </div>
 
-      {loading && (
+      {/* {loading && (
         <div className="mt-4 p-4 text-center">
           <span className="loader">Loading...</span>
         </div>
-      )}
+      )} */}
 
       {responseMessage && !loading && (
         <div className="mt-4 p-4 bg-white shadow rounded max-w-md w-full">
