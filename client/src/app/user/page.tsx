@@ -43,8 +43,7 @@ export default function UserLandingPage() {
     };
   };
 
-  // Uncomment to enable user token verification and API call tracking
-  /*
+  
   const handleUser = async () => {
     try {
       const response = await fetch(
@@ -98,7 +97,7 @@ export default function UserLandingPage() {
   useEffect(() => {
     handleUser();
   }, []);
-  */
+  
 
   // Capture and analyze mood
   const handleCaptureAndAnalyzeMood = async () => {
