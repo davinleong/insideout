@@ -31,7 +31,7 @@ API_VERSION = "v1"
 JWT_SECRET = os.getenv('JWT_SECRET')
 
 # Configure Swagger UI
-SWAGGER_URL = '/api/docs'
+SWAGGER_URL = f'/{API_VERSION}/docs'
 API_URL = '/static/swagger.yml'
 
 # Call factory function to create our blueprint
@@ -44,7 +44,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 )
 
 # Register blueprint at URL
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+app.register_blueprint(swaggerui_blueprint)
 
 # Route for serving swagger.yml
 @app.route('/static/swagger.yml')
