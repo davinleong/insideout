@@ -1,11 +1,16 @@
-//src/app/admin/page.tsx
-// Admin dashboard page
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import messages from "@/constants/messages";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Table, TableHead, TableRow, TableHeaderCell, TableBody, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHead,
+  TableRow,
+  TableHeaderCell,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import { useRouter } from "next/navigation";
 
 interface ApiStat {
@@ -15,119 +20,123 @@ interface ApiStat {
 }
 
 interface UserStat {
+  username: string;
   email: string;
-  token: string;
+  //token: string;
   totalRequests: number;
 }
 
 const AdminDashboard: React.FC = () => {
   const [apiStats, setApiStats] = useState<ApiStat[]>([]);
-  //will be implemented later using new api endpoint eg. ${process.env.NEXT_PUBLIC_API_URL}/api_stats
   const [userStats, setUserStats] = useState<UserStat[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const router = useRouter();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(
+        // Authenticate admin user
+        const authResponse = await fetch(
           `${process.env.NEXT_PUBLIC_USER_DATABASE}/verify-token`,
           {
             method: "GET",
-            credentials: "include", // Include cookies in the request
+            credentials: "include",
           }
         );
-        if (response.status !== 200) {
-         router.push("/login");
-         return;
+
+        if (!authResponse.ok) {
+          throw new Error("Authentication failed. Please log in.");
         }
 
-        const data = await response.json();
-        console.log("Verification response:", data.info.role);
-
-        if (data.info.role !== "admin") {
-          router.push("/login");
+        const authData = await authResponse.json();
+        if (authData.info.role !== "admin") {
+          router.replace("/login");
           return;
         }
 
-        // Handle verification response here
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    };
+        // Fetch API call and user data
+        const [apiCallsResponse, usersResponse] = await Promise.all([
+          fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/api-calls`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          }),
+          fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/users`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" },
+          }),
+        ]);
 
-    const fetchApiData = async () => {
-      try {
-        // Retrieve the JWT token from cookies
-        // const token = document.cookie
-        //   .split('; ')
-        //   .find(row => row.startsWith('authToken='))
-        //   ?.split('=')[1];
-
-        // if (!token) {
-        //   setError(messages.auth.notAuthenticated);
-        //   return;
-        // }
-
-        // Fetch all user information
-        const userResponse = await fetch(`${process.env.NEXT_PUBLIC_USER_DATABASE}/users`, {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!userResponse.ok) {
-          throw new Error(messages.fetch.userStatsError);
+        if (!apiCallsResponse.ok || !usersResponse.ok) {
+          throw new Error("Failed to fetch data.");
         }
 
-        const users = await userResponse.json();
+        const apiCalls = await apiCallsResponse.json();
+        const users = await usersResponse.json();
 
-        // Fetch API stats for each user
-        const userStatsPromises = users.map(async (user: { id: string; email: string}) => {
-          const userStatsResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${user.id}`, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-
-          if (userStatsResponse.ok) {
-            const { api_count: totalRequests } = await userStatsResponse.json();
-            return {
-              email: user.email,
-              totalRequests,
-            };
+        // Aggregate API stats by method and endpoint
+        const apiStatsMap = new Map<string, ApiStat>();
+        apiCalls.forEach((call: { http_method: string; endpoint: string }) => {
+          const key = `${call.http_method} ${call.endpoint}`;
+          if (apiStatsMap.has(key)) {
+            const stat = apiStatsMap.get(key)!;
+            stat.requests += 1;
           } else {
-            console.error(`${messages.fetch.userStatsError} for user ID: ${user.id}`);
-            return null;
+            apiStatsMap.set(key, {
+              method: call.http_method,
+              endpoint: call.endpoint,
+              requests: 1,
+            });
           }
         });
 
-        const userStatsResults = await Promise.all(userStatsPromises);
-        setUserStats(userStatsResults.filter(Boolean) as UserStat[]); // Remove any null entries
-      } catch (error) {
-        if (error instanceof Error) {
-          setError(error.message);
-        } else {
-          setError(messages.fetch.unknownError);
-        }
-        console.error(messages.fetch.unknownError, error);
+        const sortedApiStats = Array.from(apiStatsMap.values()).sort((a, b) => {
+          if (a.endpoint === b.endpoint) {
+            return a.method.localeCompare(b.method);
+          }
+          return a.endpoint.localeCompare(b.endpoint);
+        });
+        setApiStats(sortedApiStats);
+
+        // Aggregate user stats
+        const userStatsMap = new Map<string, number>();
+        apiCalls.forEach((call: { user_id: string }) => {
+          if (userStatsMap.has(call.user_id)) {
+            userStatsMap.set(call.user_id, userStatsMap.get(call.user_id)! + 1);
+          } else {
+            userStatsMap.set(call.user_id, 1);
+          }
+        });
+
+        const userStatsArray: UserStat[] = users.map(
+          //(user: { id: string; email: string; username?: string; token?: string }) => ({
+            (user: { id: string; email: string; username?: string }) => ({
+            username: user.username || `User ID: ${user.id}`,
+            email: user.email,
+            //token: user.token || "N/A",
+            totalRequests: userStatsMap.get(user.id) || 0,
+          })
+        );
+
+        setUserStats(userStatsArray);
+      } catch (error: any) {
+        setError(error.message || "An error occurred.");
+        console.error(error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
-    fetchApiData();
+    fetchData();
   }, []);
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <Card className="w-full max-w-2xl bg-white shadow-md rounded-lg">
+      <Card className="w-full max-w-4xl bg-white shadow-md rounded-lg">
         <CardHeader>
-          <CardTitle className="text-center text-xl font-bold">{messages.dashboard.title}</CardTitle>
+          <CardTitle className="text-center text-xl font-bold">
+            {messages.dashboard.title}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {loading ? (
@@ -136,7 +145,10 @@ const AdminDashboard: React.FC = () => {
             <p className="text-center text-red-500">{error}</p>
           ) : (
             <>
-              <h2 className="text-lg font-semibold mt-4">{messages.dashboard.apiStatsTitle}</h2>
+              {/* API Stats Table */}
+              <h2 className="text-lg font-semibold mt-4">
+                {messages.dashboard.apiStatsTitle}
+              </h2>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -156,20 +168,24 @@ const AdminDashboard: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <td colSpan={3} className="text-center">
+                      <TableCell className="text-center">
                         {messages.table.noApiStats}
-                      </td>
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
 
-              <h2 className="text-lg font-semibold mt-4">{messages.dashboard.userStatsTitle}</h2>
+              {/* User Stats Table */}
+              <h2 className="text-lg font-semibold mt-4">
+                {messages.dashboard.userStatsTitle}
+              </h2>
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableHeaderCell>Username</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
-                    <TableHeaderCell>Token</TableHeaderCell>
+                    {/* <TableHeaderCell>Token</TableHeaderCell> */}
                     <TableHeaderCell>Total Requests</TableHeaderCell>
                   </TableRow>
                 </TableHead>
@@ -177,16 +193,17 @@ const AdminDashboard: React.FC = () => {
                   {userStats.length ? (
                     userStats.map((user, index) => (
                       <TableRow key={index}>
+                        <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        <TableCell>{user.token}</TableCell>
+                        {/* <TableCell>{user.token}</TableCell>*/} 
                         <TableCell>{user.totalRequests}</TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <td colSpan={4} className="text-center">
+                      <TableCell className="text-center">
                         {messages.table.noUserStats}
-                      </td>
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
