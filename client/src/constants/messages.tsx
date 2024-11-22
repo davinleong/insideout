@@ -22,7 +22,6 @@ const messages = {
     apiStatsTitle: "API Endpoint Stats",
     userStatsTitle: "User API Consumption Stats",
   },
-  loading: "Loading data...",
 };
 
 export default messages;
