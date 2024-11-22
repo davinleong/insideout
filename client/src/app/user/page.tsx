@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/Spinner";
 import strings from "@/lib/strings";
 
 export default function UserLandingPage() {
@@ -147,7 +148,7 @@ export default function UserLandingPage() {
         color,
       } = JSON.parse(responseText);
 
-      setApiCount(apiCount - 1);
+      setApiCount(apiCount + 1);
       if (apiCount === 0) {
         setMaxReached(true);
       }
@@ -254,7 +255,7 @@ export default function UserLandingPage() {
           disabled={loading}
           className="w-full"
         >
-          {loading ? "Analyzing..." : strings.analyzeMoodButton}
+          {loading ? <Spinner /> : strings.analyzeMoodButton}
         </Button>
       </div>
 
