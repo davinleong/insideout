@@ -91,6 +91,7 @@ export default function UserLandingPage() {
 
         setApiCount(validStatusCount);
         setApiLoading(false);
+        
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
