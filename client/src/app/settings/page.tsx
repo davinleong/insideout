@@ -1,137 +1,225 @@
-/* eslint-disable @typescript-eslint/camelcase */
-// src/app/settings/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmotionSettingsPage() {
-  const [userId, setUserId] = useState<string>("60"); // Replace with actual user ID logic
 
-  // Separate states for each operation
+  // State to hold emotions and form inputs
+  const [emotions, setEmotions] = useState<string[]>([]);
   const [createEmotionValue, setCreateEmotionValue] = useState<string>("");
-  const [createRgbValue, setCreateRgbValue] = useState<string>("#000000"); // Color picker defaults to black
-
+  const [createRgbValue, setCreateRgbValue] = useState<string>("#000000");
   const [updateEmotionValue, setUpdateEmotionValue] = useState<string>("");
   const [updateRgbValue, setUpdateRgbValue] = useState<string>("#000000");
-
   const [getEmotionValue, setGetEmotionValue] = useState<string>("");
   const [deleteEmotionValue, setDeleteEmotionValue] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>(""); // State to store user information (userId = email)
+  const [userId, setUserId] = useState<number>(0); // Replace with actual user ID logic
 
-  const [message, setMessage] = useState<string>(""); // Response message
-  const [loading, setLoading] = useState<string | null>(null); // Tracks loading status per action
+  // Response message and loading state
+  const [message, setMessage] = useState<string>("");
+  const [loading, setLoading] = useState<string | null>(null);
+
+  const router = useRouter();
 
   // Helper function to convert hex to RGB decimal
-  const hexToDecimalRGB = (hex: string) => {
-    const parsed = parseInt(hex.replace("#", ""), 16);
-    return parsed;
+  const hexToDecimalRGB = (hex: string) => parseInt(hex.replace("#", ""), 16);
+
+  // Fetch emotions from the API
+  useEffect(() => {
+
+    const handleUser = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_USER_DATABASE}/verify-token`,
+          {
+            method: "GET",
+            credentials: "include", // Include cookies in the request
+          }
+        );
+        if (response.status !== 200) {
+          router.push("/login");
+          return;
+        }
+
+        const data = await response.json();
+        setUserEmail(data.info.email);
+        setUserId(data.info.id);
+        console.log("Verification response:", data);
+
+        fetchEmotions(data.info.id);
+      } catch (error) {
+        // console.error("Error:", error);
+      }
+    }
+
+
+
+    const fetchEmotions = async (userId: number) => {
+      setLoading("fetch");
+      try {
+        const data = await apiRequest(
+          `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+          { method: "GET" }
+        );
+        setEmotions(data.map((item: any) => item.emotion));
+        console.log("Fetched emotions:", data);
+      } catch (error) {
+        // setMessage("This user currently has no emotions set. Try it out!");
+      } finally {
+        setLoading(null);
+      }
+    };
+
+    const initialize = async () => {
+      await handleUser();
+    };
+  
+    initialize();
+
+  }, []);
+
+  // Reusable API request function
+  const apiRequest = async (url: string, options: RequestInit) => {
+    try {
+      const response = await fetch(url, options);
+      if (response.status === 404) {
+        console.log("User has not added any emotions yet");
+      } else if (!response.ok) {
+        const errorResponse = await response.json();
+        console.error("API Error Response:", errorResponse);
+        throw new Error(errorResponse.message || "API request failed.");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("API Error:", error);
+      throw error;
+    }
   };
 
-  // Helper function for API call to create an emotion
-  const createEmotion = async (emotion: string, rgb: string) => {
+  const createEmotion = async () => {
+    if (!createEmotionValue) {
+      setMessage("❌ Please enter an emotion name.");
+      return;
+    }
+    if (!createRgbValue || createRgbValue === "#000000") {
+      setMessage("❌ Please select an RGB value.");
+      return;
+    }
+
     setLoading("create");
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/emotions`, {
+      await apiRequest(`${process.env.NEXT_PUBLIC_API_URL}/emotions`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ user_id: userId, emotion, rgb: hexToDecimalRGB(rgb) }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          emotion: createEmotionValue,
+          rgb: hexToDecimalRGB(createRgbValue),
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create emotion.");
-      }
+      // Fetch updated emotions list after successful creation
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
+      );
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
 
-      const data = await response.json();
-      setMessage(`✅ Emotion "${emotion}" created successfully.`);
+      setMessage(`✅ Emotion "${createEmotionValue}" created successfully.`);
+      setCreateEmotionValue(""); // Reset input field
+      setCreateRgbValue("#000000"); // Reset color picker
     } catch (error) {
-      console.error("Error creating emotion:", error);
       setMessage("❌ Error creating emotion.");
     } finally {
       setLoading(null);
     }
   };
 
-  // Helper function to get RGB for a specific emotion
-  const getEmotionRGB = async (emotion: string) => {
+  const getEmotionRGB = async () => {
+    if (!getEmotionValue) {
+      setMessage("❌ Please select an emotion to retrieve its RGB value.");
+      return;
+    }
+
     setLoading("get");
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}?user_id=${userId}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      const data = await apiRequest(
+        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${getEmotionValue}?user_id=${userId}`,
+        { method: "GET" }
       );
-
-      if (!response.ok) {
-        throw new Error("Failed to retrieve emotion RGB value.");
-      }
-
-      const data = await response.json();
-      setMessage(`✅ Retrieved RGB value for "${emotion}": ${data.rgb}`);
+      setMessage(`✅ Retrieved RGB value for "${getEmotionValue}": ${data.rgb}`);
     } catch (error) {
-      console.error("Error retrieving emotion RGB value:", error);
-      setMessage("❌ Error retrieving emotion RGB value.");
+      setMessage("❌ Error retrieving RGB value.");
     } finally {
       setLoading(null);
     }
   };
 
-  // Helper function to update RGB for a specific emotion
-  const updateEmotionRGB = async (emotion: string, newRgb: string) => {
+  const updateEmotionRGB = async () => {
+    if (!updateEmotionValue) {
+      setMessage("❌ Please select an emotion to update.");
+      return;
+    }
+    if (!updateRgbValue || updateRgbValue === "#000000") {
+      setMessage("❌ Please select a new RGB value.");
+      return;
+    }
+
     setLoading("update");
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}`,
+      await apiRequest(
+        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${updateEmotionValue}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ user_id: userId, rgb: hexToDecimalRGB(newRgb) }),
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: userId,
+            rgb: hexToDecimalRGB(updateRgbValue),
+          }),
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to update RGB value.");
-      }
+      // Fetch updated emotions list after successful update
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
+      );
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
 
-      const data = await response.json();
-      setMessage(`✅ RGB value for "${emotion}" updated successfully.`);
+      setMessage(`✅ RGB value for "${updateEmotionValue}" updated successfully.`);
     } catch (error) {
-      console.error("Error updating RGB value:", error);
       setMessage("❌ Error updating RGB value.");
     } finally {
       setLoading(null);
     }
   };
 
-  // Helper function to delete a specific emotion
-  const deleteEmotion = async (emotion: string) => {
+  const deleteEmotion = async () => {
+    if (!deleteEmotionValue) {
+      setMessage("❌ Please select an emotion to delete.");
+      return;
+    }
+
     setLoading("delete");
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}?user_id=${userId}`,
-        {
-          method: "DELETE",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      await apiRequest(
+        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${deleteEmotionValue}?user_id=${userId}`,
+        { method: "DELETE" }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to delete emotion.");
-      }
+      // Fetch updated emotions list after successful deletion
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
+      );
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
 
-      setMessage(`✅ Emotion "${emotion}" deleted successfully.`);
+      setMessage(`✅ Emotion "${deleteEmotionValue}" deleted successfully.`);
     } catch (error) {
-      console.error("Error deleting emotion:", error);
-      setMessage("❌ Error deleting emotion.");
+      // setMessage("❌ Error deleting emotion.");
     } finally {
       setLoading(null);
     }
@@ -143,10 +231,8 @@ export default function EmotionSettingsPage() {
       {message && (
         <div
           className={`fixed bottom-4 left-1/2 transform -translate-x-1/2 p-4 rounded shadow ${
-            message.startsWith("✅")
-              ? "bg-green-500 text-white"
-              : "bg-red-500 text-white"
-          }`}
+            message.startsWith("✅") ? "bg-green-500" : "bg-red-500"
+          } text-white`}
           style={{ zIndex: 1000 }}
         >
           <p>{message}</p>
@@ -154,6 +240,17 @@ export default function EmotionSettingsPage() {
       )}
 
       <h1 className="text-2xl md:text-3xl font-bold text-center">Manage Emotions</h1>
+
+      <div className="text-center">
+        <strong>Current User:</strong>{" "}
+        {userEmail === "" ? (
+          <span className="inline-block">
+            <Skeleton className="w-[100px] h-[15px] rounded-full bg-gray-200" />
+          </span>
+        ) : (
+          userEmail
+        )}
+      </div>
 
       {/* Create Emotion Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
@@ -180,7 +277,7 @@ export default function EmotionSettingsPage() {
           </div>
           <Button
             variant="default"
-            onClick={() => createEmotion(createEmotionValue, createRgbValue)}
+            onClick={createEmotion}
             disabled={loading === "create"}
             className="w-full"
           >
@@ -193,16 +290,23 @@ export default function EmotionSettingsPage() {
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Get Emotion RGB</h2>
         <div className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Enter emotion"
+          <select
             value={getEmotionValue}
             onChange={(e) => setGetEmotionValue(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
-          />
+          >
+            <option value="" disabled>
+              Select an emotion
+            </option>
+            {emotions.map((emotion, index) => (
+              <option key={index} value={emotion}>
+                {emotion}
+              </option>
+            ))}
+          </select>
           <Button
             variant="default"
-            onClick={() => getEmotionRGB(getEmotionValue)}
+            onClick={getEmotionRGB}
             disabled={loading === "get"}
             className="w-full"
           >
@@ -215,13 +319,20 @@ export default function EmotionSettingsPage() {
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Update Emotion RGB</h2>
         <div className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Enter emotion"
+          <select
             value={updateEmotionValue}
             onChange={(e) => setUpdateEmotionValue(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
-          />
+          >
+            <option value="" disabled>
+              Select an emotion
+            </option>
+            {emotions.map((emotion, index) => (
+              <option key={index} value={emotion}>
+                {emotion}
+              </option>
+            ))}
+          </select>
           <div className="flex items-center gap-2">
             <label htmlFor="update-color-picker" className="text-gray-700 font-medium">
               Pick Color:
@@ -236,7 +347,7 @@ export default function EmotionSettingsPage() {
           </div>
           <Button
             variant="default"
-            onClick={() => updateEmotionRGB(updateEmotionValue, updateRgbValue)}
+            onClick={updateEmotionRGB}
             disabled={loading === "update"}
             className="w-full"
           >
@@ -249,16 +360,23 @@ export default function EmotionSettingsPage() {
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
         <h2 className="text-lg font-semibold mb-2">Delete Emotion</h2>
         <div className="flex flex-col gap-4">
-          <input
-            type="text"
-            placeholder="Enter emotion"
+          <select
             value={deleteEmotionValue}
             onChange={(e) => setDeleteEmotionValue(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded"
-          />
+          >
+            <option value="" disabled>
+              Select an emotion
+            </option>
+            {emotions.map((emotion, index) => (
+              <option key={index} value={emotion}>
+                {emotion}
+              </option>
+            ))}
+          </select>
           <Button
             variant="default"
-            onClick={() => deleteEmotion(deleteEmotionValue)}
+            onClick={deleteEmotion}
             disabled={loading === "delete"}
             className="w-full"
           >
