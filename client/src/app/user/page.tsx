@@ -43,7 +43,6 @@ export default function UserLandingPage() {
     };
   };
 
-  
   const handleUser = async () => {
     try {
       const response = await fetch(
@@ -65,7 +64,7 @@ export default function UserLandingPage() {
 
       try {
         const userStatsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api_count?user_id=${data.info.id}`,
+          `${process.env.NEXT_PUBLIC_USER_DATABASE}/api-calls?user_id=${data.info.id}`,
           {
             method: "GET",
             headers: {
@@ -81,11 +80,14 @@ export default function UserLandingPage() {
         const userStatsData = await userStatsResponse.json();
         console.log("Parsed user stats data:", userStatsData);
 
-        if (typeof userStatsData.api_count !== "number") {
-          throw new Error(`Invalid api_count value: ${userStatsData.api_count}`);
-        }
+        const validStatusCount = userStatsData.filter(
+          (item: { status_code: number }) => item.status_code === 200
+        ).length;
+        console.log(
+          `Number of items with status_code 200: ${validStatusCount}`
+        );
 
-        setApiCount(userStatsData.api_count);
+        setApiCount(validStatusCount);
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
@@ -97,7 +99,6 @@ export default function UserLandingPage() {
   useEffect(() => {
     handleUser();
   }, []);
-  
 
   // Capture and analyze mood
   const handleCaptureAndAnalyzeMood = async () => {
