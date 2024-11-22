@@ -84,7 +84,8 @@ export default function UserLandingPage() {
         console.log("Parsed user stats data:", userStatsData);
 
         const validStatusCount = userStatsData.filter(
-          (item: { status_code: number }) => item.status_code === 200
+          (item: { status_code: number; endpoint: string }) =>
+            item.status_code === 200 && item.endpoint === "https://potipress.com/api/v1/process"
         ).length;
         console.log(
           `Number of items with status_code 200: ${validStatusCount}`
@@ -92,7 +93,6 @@ export default function UserLandingPage() {
 
         setApiCount(validStatusCount);
         setApiLoading(false);
-        
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
@@ -106,10 +106,16 @@ export default function UserLandingPage() {
     handleUser();
   }, []);
 
+  useEffect(() => {
+    if (maxReached) {
+      alert(strings.maxApiCallsAlert);
+    }
+  }, [maxReached]);
+
   // Capture and analyze mood
   const handleCaptureAndAnalyzeMood = async () => {
-    if (maxReached) {
-      alert(strings.maxApiCallsReached);
+    if (apiCount >= 20) {
+      setMaxReached(true);
       return;
     }
 
@@ -143,13 +149,10 @@ export default function UserLandingPage() {
         throw new Error("Empty response body");
       }
 
-      const {
-        response: moodResponse,
-        color,
-      } = JSON.parse(responseText);
+      const { response: moodResponse, color } = JSON.parse(responseText);
 
       setApiCount(apiCount + 1);
-      if (apiCount === 0) {
+      if (apiCount == 0 || apiCount < 0) {
         setMaxReached(true);
       }
       setResponseMessage(moodResponse);
@@ -157,10 +160,6 @@ export default function UserLandingPage() {
 
       if (color) {
         await handleControlSmartLight(color); // Update light color
-      }
-
-      if (maxReached) {
-        alert(strings.maxApiCallsAlert);
       }
     } catch (error) {
       console.error("Error analyzing mood:", error);
@@ -237,6 +236,7 @@ export default function UserLandingPage() {
           20 - apiCount
         )}
       </div>
+
       {maxReached && (
         <p className="text-red-500 text-center">{strings.maxApiCallsReached}</p>
       )}
@@ -252,18 +252,12 @@ export default function UserLandingPage() {
         <Button
           variant="default"
           onClick={handleCaptureAndAnalyzeMood}
-          disabled={loading}
+          disabled={loading || maxReached}
           className="w-full"
         >
           {loading ? <Spinner /> : strings.analyzeMoodButton}
         </Button>
       </div>
-
-      {/* {loading && (
-        <div className="mt-4 p-4 text-center">
-          <span className="loader">Loading...</span>
-        </div>
-      )} */}
 
       {responseMessage && !loading && (
         <div className="mt-4 p-4 bg-white shadow rounded max-w-md w-full">
