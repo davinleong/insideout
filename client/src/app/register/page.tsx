@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function Register() {
   const [email, setEmail] = useState("");
@@ -83,7 +84,7 @@ export default function Register() {
             {loading ? "Registering..." : "Register"}
           </Button>
         </form>
-        {loading && <p className="mt-4">Loading...</p>}
+        {loading && <Spinner size="medium" />}
         {message && (
           <p
             className={`mt-4 ${

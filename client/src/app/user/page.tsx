@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import strings from "@/lib/strings";
 
 export default function UserLandingPage() {
@@ -15,7 +16,8 @@ export default function UserLandingPage() {
   const [responseMessage, setResponseMessage] = useState("");
   const [moodColor, setMoodColor] = useState<number>(0); // Color data for smart light
   const [loading, setLoading] = useState(false); // Tracks loading status
-  const [userEmail, setUserEmail] = useState<string>("Guest"); // State to store user information (userId = email)
+  const [apiLoading, setApiLoading] = useState(true); // Tracks loading status for apiCalls
+  const [userEmail, setUserEmail] = useState<string>(""); // State to store user information (userId = email)
   const [userId, setUserId] = useState<number>(0); // State to store user information
 
   const router = useRouter();
@@ -88,6 +90,8 @@ export default function UserLandingPage() {
         );
 
         setApiCount(validStatusCount);
+        setApiLoading(false);
+        
       } catch (error) {
         console.error("Error fetching user stats:", error);
       }
@@ -97,6 +101,7 @@ export default function UserLandingPage() {
   };
 
   useEffect(() => {
+    setApiLoading(true);
     handleUser();
   }, []);
 
@@ -211,13 +216,26 @@ export default function UserLandingPage() {
         {strings.moodControlDescription}
       </p>
 
-      <p className="text-center">
-        <strong>Current User:</strong> {userEmail}
-      </p>
-
-      <p className="text-center">
-        <strong>{strings.apiCallsRemaining}:</strong> {20 - apiCount}
-      </p>
+      <div className="text-center">
+        <strong>Current User:</strong>{" "}
+        {userEmail === "" ? (
+          <span className="inline-block">
+            <Skeleton className="w-[100px] h-[15px] rounded-full bg-gray-200" />
+          </span>
+        ) : (
+          userEmail
+        )}
+      </div>
+      <div className="text-center">
+        <strong>{strings.apiCallsRemaining}:</strong>{" "}
+        {apiLoading ? (
+          <span className="inline-block">
+            <Skeleton className="w-[50px] h-[15px] rounded-full bg-gray-200" />
+          </span>
+        ) : (
+          20 - apiCount
+        )}
+      </div>
       {maxReached && (
         <p className="text-red-500 text-center">{strings.maxApiCallsReached}</p>
       )}
