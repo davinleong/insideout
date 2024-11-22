@@ -80,11 +80,14 @@ export default function Login() {
             {message}
           </p>
         )}
-        <Button variant="secondary" className="text-xl">
-          <Link href="/" className="flex items-center">
-            Back
-          </Link>
-        </Button>
+         <Button variant="secondary" className="w-full">
+            <Link href="/" className="flex items-center">
+              Back
+            </Link>
+            <Link href="/login/forgotPassword" className="flex items-center">
+              Forgot Password?
+            </Link>
+          </Button>
       </div>
     </div>
   );
