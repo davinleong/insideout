@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function EmotionSettingsPage() {
-  const [userId] = useState<string>("60"); // Replace with actual user ID logic
 
   // State to hold emotions and form inputs
   const [emotions, setEmotions] = useState<string[]>([]);
@@ -14,17 +15,49 @@ export default function EmotionSettingsPage() {
   const [updateRgbValue, setUpdateRgbValue] = useState<string>("#000000");
   const [getEmotionValue, setGetEmotionValue] = useState<string>("");
   const [deleteEmotionValue, setDeleteEmotionValue] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>(""); // State to store user information (userId = email)
+  const [userId, setUserId] = useState<number>(0); // Replace with actual user ID logic
 
   // Response message and loading state
   const [message, setMessage] = useState<string>("");
   const [loading, setLoading] = useState<string | null>(null);
+
+  const router = useRouter();
 
   // Helper function to convert hex to RGB decimal
   const hexToDecimalRGB = (hex: string) => parseInt(hex.replace("#", ""), 16);
 
   // Fetch emotions from the API
   useEffect(() => {
-    const fetchEmotions = async () => {
+
+    const handleUser = async () => {
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_USER_DATABASE}/verify-token`,
+          {
+            method: "GET",
+            credentials: "include", // Include cookies in the request
+          }
+        );
+        if (response.status !== 200) {
+          router.push("/login");
+          return;
+        }
+
+        const data = await response.json();
+        setUserEmail(data.info.email);
+        setUserId(data.info.id);
+        console.log("Verification response:", data);
+
+        fetchEmotions(data.info.id);
+      } catch (error) {
+        // console.error("Error:", error);
+      }
+    }
+
+
+
+    const fetchEmotions = async (userId: number) => {
       setLoading("fetch");
       try {
         const data = await apiRequest(
@@ -34,20 +67,27 @@ export default function EmotionSettingsPage() {
         setEmotions(data.map((item: any) => item.emotion));
         console.log("Fetched emotions:", data);
       } catch (error) {
-        setMessage("❌ Error fetching emotions.");
+        // setMessage("This user currently has no emotions set. Try it out!");
       } finally {
         setLoading(null);
       }
     };
 
-    fetchEmotions();
-  }, [userId]);
+    const initialize = async () => {
+      await handleUser();
+    };
+  
+    initialize();
+
+  }, []);
 
   // Reusable API request function
   const apiRequest = async (url: string, options: RequestInit) => {
     try {
       const response = await fetch(url, options);
-      if (!response.ok) {
+      if (response.status === 404) {
+        console.log("User has not added any emotions yet");
+      } else if (!response.ok) {
         const errorResponse = await response.json();
         console.error("API Error Response:", errorResponse);
         throw new Error(errorResponse.message || "API request failed.");
@@ -179,7 +219,7 @@ export default function EmotionSettingsPage() {
 
       setMessage(`✅ Emotion "${deleteEmotionValue}" deleted successfully.`);
     } catch (error) {
-      setMessage("❌ Error deleting emotion.");
+      // setMessage("❌ Error deleting emotion.");
     } finally {
       setLoading(null);
     }
@@ -200,6 +240,17 @@ export default function EmotionSettingsPage() {
       )}
 
       <h1 className="text-2xl md:text-3xl font-bold text-center">Manage Emotions</h1>
+
+      <div className="text-center">
+        <strong>Current User:</strong>{" "}
+        {userEmail === "" ? (
+          <span className="inline-block">
+            <Skeleton className="w-[100px] h-[15px] rounded-full bg-gray-200" />
+          </span>
+        ) : (
+          userEmail
+        )}
+      </div>
 
       {/* Create Emotion Section */}
       <section className="w-full max-w-md p-4 bg-white shadow rounded">
