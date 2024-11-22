@@ -145,12 +145,12 @@ export default function UserLandingPage() {
       const {
         response: moodResponse,
         color,
-        api_count,
-        max_reached,
       } = JSON.parse(responseText);
 
-      setApiCount(api_count);
-      setMaxReached(max_reached);
+      setApiCount(apiCount - 1);
+      if (apiCount === 0) {
+        setMaxReached(true);
+      }
       setResponseMessage(moodResponse);
       setMoodColor(color);
 
@@ -158,7 +158,7 @@ export default function UserLandingPage() {
         await handleControlSmartLight(color); // Update light color
       }
 
-      if (max_reached) {
+      if (maxReached) {
         alert(strings.maxApiCallsAlert);
       }
     } catch (error) {
