@@ -22,7 +22,6 @@ interface ApiStat {
 interface UserStat {
   username: string;
   email: string;
-  //token: string;
   totalRequests: number;
 }
 
@@ -109,11 +108,9 @@ const AdminDashboard: React.FC = () => {
         });
 
         const userStatsArray: UserStat[] = users.map(
-          //(user: { id: string; email: string; username?: string; token?: string }) => ({
             (user: { id: string; email: string; username?: string }) => ({
             username: user.username || `User ID: ${user.id}`,
             email: user.email,
-            //token: user.token || "N/A",
             totalRequests: userStatsMap.get(user.id) || 0,
           })
         );
@@ -185,7 +182,6 @@ const AdminDashboard: React.FC = () => {
                   <TableRow>
                     <TableHeaderCell>Username</TableHeaderCell>
                     <TableHeaderCell>Email</TableHeaderCell>
-                    {/* <TableHeaderCell>Token</TableHeaderCell> */}
                     <TableHeaderCell>Total Requests</TableHeaderCell>
                   </TableRow>
                 </TableHead>
@@ -195,7 +191,6 @@ const AdminDashboard: React.FC = () => {
                       <TableRow key={index}>
                         <TableCell>{user.username}</TableCell>
                         <TableCell>{user.email}</TableCell>
-                        {/* <TableCell>{user.token}</TableCell>*/} 
                         <TableCell>{user.totalRequests}</TableCell>
                       </TableRow>
                     ))
