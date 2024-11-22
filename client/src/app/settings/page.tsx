@@ -71,19 +71,23 @@ export default function EmotionSettingsPage() {
 
     setLoading("create");
     try {
-      const newEmotion = await apiRequest(
-        `${process.env.NEXT_PUBLIC_API_URL}/emotions`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            user_id: userId,
-            emotion: createEmotionValue,
-            rgb: hexToDecimalRGB(createRgbValue),
-          }),
-        }
+      await apiRequest(`${process.env.NEXT_PUBLIC_API_URL}/emotions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId,
+          emotion: createEmotionValue,
+          rgb: hexToDecimalRGB(createRgbValue),
+        }),
+      });
+
+      // Fetch updated emotions list after successful creation
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
       );
-      setEmotions((prev) => [...prev, newEmotion.emotion]); // Update the emotions list
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
+
       setMessage(`✅ Emotion "${createEmotionValue}" created successfully.`);
       setCreateEmotionValue(""); // Reset input field
       setCreateRgbValue("#000000"); // Reset color picker
@@ -137,6 +141,14 @@ export default function EmotionSettingsPage() {
           }),
         }
       );
+
+      // Fetch updated emotions list after successful update
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
+      );
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
+
       setMessage(`✅ RGB value for "${updateEmotionValue}" updated successfully.`);
     } catch (error) {
       setMessage("❌ Error updating RGB value.");
@@ -157,7 +169,14 @@ export default function EmotionSettingsPage() {
         `${process.env.NEXT_PUBLIC_API_URL}/emotions/${deleteEmotionValue}?user_id=${userId}`,
         { method: "DELETE" }
       );
-      setEmotions((prev) => prev.filter((e) => e !== deleteEmotionValue)); // Remove deleted emotion
+
+      // Fetch updated emotions list after successful deletion
+      const updatedEmotions = await apiRequest(
+        `https://potipress.com/api/v1/emotions/?user_id=${userId}`,
+        { method: "GET" }
+      );
+      setEmotions(updatedEmotions.map((item: any) => item.emotion)); // Update the dropdown state
+
       setMessage(`✅ Emotion "${deleteEmotionValue}" deleted successfully.`);
     } catch (error) {
       setMessage("❌ Error deleting emotion.");
