@@ -23,7 +23,7 @@ class TokenHandler {
 
     const encodedHeader = base64Encode(header);
     const encodedPayload = base64Encode(payload);
-    const secret = process.env.JWT_SECRET; // Replace with your secret key
+    const secret = process.env.JWT_SECRET;
     const signature = createSignature(encodedHeader, encodedPayload, secret);
 
     return `${encodedHeader}.${encodedPayload}.${signature}`;
@@ -31,7 +31,7 @@ class TokenHandler {
   
   static verifyToken(token) {
     const [encodedHeader, encodedPayload, signature] = token.split('.');
-    const secret = process.env.JWT_SECRET; // Replace with your secret key
+    const secret = process.env.JWT_SECRET;
 
     if (signature !== createSignature(encodedHeader, encodedPayload, secret)) {
       throw new Error('Invalid token');

@@ -1,20 +1,31 @@
 // classes/requestHandler.js
-const bcrypt = require('bcrypt'); // Corrected 'brcypt' to 'bcrypt'
-const TokenHandler = require('./tokenHandler.js'); // Changed to CommonJS require
+const bcrypt = require('bcrypt'); 
+const TokenHandler = require('./tokenHandler.js'); 
 const saltRounds = 10;
+const url = require('url');
 
 class RequestHandler {
 
   constructor(supabase, apiVersion) {
     this.supabase = supabase;
     this.apiVersion = apiVersion;
+    this.allowedOrigins = [
+      'https://insideout-psi.vercel.app',
+      'https://localhost:3000',
+    ]
   }
 
   async handleRequest(request, response) {
-    response.setHeader('Access-Control-Allow-Origin', 'https://insideout-psi.vercel.app');
+    const origin = request.headers.origin;
+
+    if (this.allowedOrigins.includes(origin)) {
+      response.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      response.setHeader('Access-Control-Allow-Origin', null);
+    }
     response.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-    response.setHeader('Access-Control-Allow-Credentials', 'true'); // Allow credentials
+    response.setHeader('Access-Control-Allow-Credentials', 'true'); 
 
     // Handle preflight requests (OPTIONS)
     if (request.method === 'OPTIONS') {
@@ -24,14 +35,14 @@ class RequestHandler {
       return; // End here, no need to proceed further for OPTIONS requests
     }
 
-    console.log(`Received request: ${request.method} ${request.url}`); // Log the request method and URL
+    const parsedUrl = url.parse(request.url, true);
+    const user_id = parsedUrl.query.user_id;
 
     if (request.method === 'GET' && request.url === `/COMP4537/projects/insideout/api/${this.apiVersion}`) {
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ message: `Hello, this is ${this.apiVersion} of the database.` }));
     } else if (request.method === 'GET' && request.url === `/COMP4537/projects/insideout/api/${this.apiVersion}/users`) {
       try {
-        console.log('Fetching users...'); // Log before fetching users
         const users = await this.getUsers();
         response.writeHead(200, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify(users));
@@ -46,6 +57,16 @@ class RequestHandler {
       this.loginUser(request, response);
     } else if (request.method === 'GET' && request.url === `/COMP4537/projects/insideout/api/${this.apiVersion}/verify-token`) {
       this.verifyToken(request, response);
+    } else if (request.method === 'GET' && parsedUrl.pathname === `/COMP4537/projects/insideout/api/${this.apiVersion}/api-calls`) {
+      if (user_id) {
+        let userStats = await this.getUserApiCalls(user_id);
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(userStats));
+      } else {
+        let stats = await this.getApiCalls();
+        response.writeHead(200, { 'Content-Type': 'application/json' });
+        response.end(JSON.stringify(stats));
+      }
     } else {
       response.writeHead(405, { 'Content-Type': 'application/json' }); // (no other methods allowed)
       response.end(JSON.stringify({ message: 'Method Not Allowed' }));
@@ -55,8 +76,6 @@ class RequestHandler {
   // GET
   async getUsers() {
     const { data, error } = await this.supabase.from('users').select('*');
-    console.log('getUsers data:', data); // Log the data
-    console.log('getUsers error:', error); // Log any error
     if (error) {
       throw new Error(error.message);
     }
@@ -84,16 +103,11 @@ class RequestHandler {
         const userData = JSON.parse(body);
 
         // hash password before insertion
-        // console.log("before hash", userData.password);
         userData.password = await bcrypt.hash(userData.password, saltRounds);
-        // console.log("after hash", userData.password);
 
         const { data, error } = await this.supabase
           .from('users')
           .insert([userData]);
-
-        // console.log('registerUser data:', data); // Log the data
-        // console.log('registerUser error:', error); // Log any error
 
         if (error) {
           throw new Error(error.details);
@@ -128,7 +142,6 @@ class RequestHandler {
     req.on('end', async () => {
       try {
         const { email, password } = JSON.parse(body);
-        // console.log("Logging in user...", email);
 
         // Retrieve the user from the database
         const { data, error } = await this.supabase.from('users').select('*').eq('email', email).single();
@@ -137,7 +150,6 @@ class RequestHandler {
         }
 
         const user = data;
-        // console.log("Retrieved user:", user);
 
         // Compare the provided password with the hashed password from the database
         const match = await bcrypt.compare(password, user.password);
@@ -146,9 +158,7 @@ class RequestHandler {
         }
 
         // Generate a JWT token
-        console.log('Generating token...');
         let token = TokenHandler.generateToken(user);
-        console.log('Generated token:', token);
 
         // success route
         // httpOnly JWT cookie attached
@@ -167,19 +177,19 @@ class RequestHandler {
       }
     });
   }
-  
+
   async verifyToken(request, response) {
     try {
       const cookieHeader = request.headers.cookie || '';
       const token = cookieHeader.split('authToken=')[1];
-      
+
       if (!token) {
         response.writeHead(401, { 'Content-Type': 'application/json' });
         response.end(JSON.stringify({ message: 'Unauthorized - No token found' }));
         return;
       }
-      
-      const payload = TokenHandler.verifyToken(token); 
+
+      const payload = TokenHandler.verifyToken(token);
       response.writeHead(200, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ message: 'Token is valid', info: payload }));
     } catch (error) {
@@ -188,7 +198,21 @@ class RequestHandler {
     }
   }
 
-  // GET /users should return a specific user?
+  async getApiCalls() {
+    const { data, error } = await this.supabase.from('api_calls').select('*');
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data;
+  }
+
+  async getUserApiCalls(userId) {
+    const { data, error } = await this.supabase.from('api_calls').select('*').eq('user_id', userId);
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data;
+  }
 }
 
 module.exports = RequestHandler;
