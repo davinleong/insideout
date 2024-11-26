@@ -1,9 +1,7 @@
 import base64
-import http
 import io
 import os
 import subprocess
-from tabnanny import check
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from deepface import DeepFace
@@ -11,7 +9,6 @@ from PIL import Image
 import numpy as np
 import cv2
 from flask_swagger_ui import get_swaggerui_blueprint
-from functools import wraps
 from dotenv import load_dotenv
 import os
 from supabase import create_client, Client
@@ -31,7 +28,7 @@ API_VERSION = "v1"
 JWT_SECRET = os.getenv('JWT_SECRET')
 
 # Configure Swagger UI
-SWAGGER_URL = '/api/docs'
+SWAGGER_URL = f'/{API_VERSION}/docs'
 API_URL = '/static/swagger.yml'
 
 # Call factory function to create our blueprint
@@ -44,7 +41,7 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 )
 
 # Register blueprint at URL
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+app.register_blueprint(swaggerui_blueprint)
 
 # Route for serving swagger.yml
 @app.route('/static/swagger.yml')
@@ -206,6 +203,35 @@ def create_emotion():
         record_api_call(user_id, http_method, endpoint, status_code)
         print(f"Error inserting emotion: {e}")
         return jsonify({'error': 'Failed to add emotion', 'details': str(e)}), 500
+
+@app.route(f'/{API_VERSION}/emotions/', methods=['GET'])
+def get_all_emotions():
+    user_id = request.args.get('user_id')
+    endpoint = f"https://potipress.com/api/{API_VERSION}/emotions/{user_id}"
+    http_method = "GET"
+
+    if not user_id:
+        status_code = 400
+        record_api_call(user_id, http_method, endpoint, status_code)
+        return jsonify({'error': 'User ID not provided.'}), 400
+    
+    try:
+        response = supabase.table('emotions').select('*').eq('user_id', user_id).execute()
+        data = response.data
+
+        if data:
+            status_code = 200
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify(data), 200
+        else:
+            status_code = 404
+            record_api_call(user_id, http_method, endpoint, status_code)
+            return jsonify({'error': 'No emotions found for this user.'}), 404
+    except Exception as e:
+        status_code = 500
+        record_api_call(user_id, http_method, endpoint, status_code)
+        print(f"Error retrieving emotions: {e}")
+        return jsonify({'error': 'Failed to retrieve emotions', 'details': str(e)}), 500
 
 @app.route(f'/{API_VERSION}/emotions/<emotion>', methods=['GET'])
 def get_emotion(emotion):

@@ -9,6 +9,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import messages from "@/constants/messages"; // Importing messages
+import { Spinner } from "@/components/ui/Spinner";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -69,7 +70,7 @@ export default function Login() {
             {loading ? "Logging in..." : "Login"}
           </Button>
         </form>
-        {loading && <p className="mt-4">{messages.loading}</p>}
+        {loading && <Spinner size="medium" />}
         {message && (
           <p
             className={`mt-4 ${
