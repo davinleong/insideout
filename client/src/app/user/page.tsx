@@ -17,9 +17,12 @@ export default function UserLandingPage() {
   const [responseMessage, setResponseMessage] = useState("");
   const [moodColor, setMoodColor] = useState<number>(0); // Color data for smart light
   const [loading, setLoading] = useState(false); // Tracks loading status
-  const [apiLoading, setApiLoading] = useState(true); // Tracks loading status for apiCalls
-  const [userEmail, setUserEmail] = useState<string>(""); // State to store user information (userId = email)
-  const [userId, setUserId] = useState<number>(0); // State to store user information
+  const [apiLoading, setApiLoading] = useState(true); // Tracks loading status for API calls
+  const [userEmail, setUserEmail] = useState<string>(""); // State to store user information
+  const [userId, setUserId] = useState<number>(0); // State to store user ID
+  const [emotionMappings, setEmotionMappings] = useState<
+    { emotion: string; color: number }[]
+  >([]); // User-specific emotion mappings
 
   const router = useRouter();
 
@@ -46,6 +49,7 @@ export default function UserLandingPage() {
     };
   };
 
+  // Fetch user details and stats
   const handleUser = async () => {
     try {
       const response = await fetch(
@@ -63,47 +67,82 @@ export default function UserLandingPage() {
       const data = await response.json();
       setUserEmail(data.info.email);
       setUserId(data.info.id);
-      console.log("Verification response:", data);
 
-      try {
-        const userStatsResponse = await fetch(
-          `${process.env.NEXT_PUBLIC_USER_DATABASE}/api-calls?user_id=${data.info.id}`,
-          {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        if (!userStatsResponse.ok) {
-          throw new Error(`HTTP error! status: ${userStatsResponse.status}`);
+      const userStatsResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_USER_DATABASE}/api-calls?user_id=${data.info.id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
+      );
 
-        const userStatsData = await userStatsResponse.json();
-        console.log("Parsed user stats data:", userStatsData);
-
-        const validStatusCount = userStatsData.filter(
-          (item: { status_code: number; endpoint: string }) =>
-            item.status_code === 200 && item.endpoint === "https://potipress.com/api/v1/process"
-        ).length;
-        console.log(
-          `Number of items with status_code 200: ${validStatusCount}`
-        );
-
-        setApiCount(validStatusCount);
-        setApiLoading(false);
-      } catch (error) {
-        console.error("Error fetching user stats:", error);
+      if (!userStatsResponse.ok) {
+        throw new Error("Failed to fetch user stats.");
       }
+
+      const userStatsData = await userStatsResponse.json();
+      const validStatusCount = userStatsData.filter(
+        (item: { status_code: number; endpoint: string }) =>
+          item.status_code === 200 &&
+          item.endpoint === "https://potipress.com/api/v1/process"
+      ).length;
+
+      setApiCount(validStatusCount);
+      setApiLoading(false);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error fetching user data:", error);
+    }
+  };
+
+  // Fetch emotion-to-color mappings
+  const fetchEmotionMappings = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/emotions`, {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch emotion mappings.");
+      }
+
+      const data = await response.json();
+      setEmotionMappings(data);
+    } catch (error) {
+      console.error("Error fetching emotion mappings:", error);
+    }
+  };
+
+  // Update specific emotion mapping
+  const updateEmotionMapping = async (emotion: string, color: number) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/emotions/${emotion}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ color }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update emotion mapping.");
+      }
+
+      alert(`Updated color for emotion: ${emotion}`);
+      fetchEmotionMappings(); // Refresh mappings after update
+    } catch (error) {
+      console.error("Error updating emotion mapping:", error);
     }
   };
 
   useEffect(() => {
     setApiLoading(true);
     handleUser();
+    fetchEmotionMappings();
   }, []);
 
   useEffect(() => {
@@ -119,7 +158,7 @@ export default function UserLandingPage() {
       return;
     }
 
-    setLoading(true); // Start loading
+    setLoading(true);
 
     const payload = {
       user_id: String(userId),
@@ -127,8 +166,6 @@ export default function UserLandingPage() {
     };
 
     try {
-      console.log("Sending payload:", payload);
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/process`,
         {
@@ -142,29 +179,18 @@ export default function UserLandingPage() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const responseText = await response.text();
-      console.log("Received response text:", responseText);
-
-      if (!responseText) {
-        throw new Error("Empty response body");
-      }
-
-      const { response: moodResponse, color } = JSON.parse(responseText);
-
+      const { response: moodResponse, color } = await response.json();
       setApiCount(apiCount + 1);
-      if (apiCount == 0 || apiCount < 0) {
-        setMaxReached(true);
-      }
       setResponseMessage(moodResponse);
       setMoodColor(color);
 
       if (color) {
-        await handleControlSmartLight(color); // Update light color
+        await handleControlSmartLight(color);
       }
     } catch (error) {
       console.error("Error analyzing mood:", error);
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 
@@ -176,11 +202,7 @@ export default function UserLandingPage() {
       model: process.env.NEXT_PUBLIC_GOVEE_DEVICE_MODEL,
       cmd: {
         name: "color",
-        value: {
-          r: rgb.r,
-          g: rgb.g,
-          b: rgb.b,
-        },
+        value: { r: rgb.r, g: rgb.g, b: rgb.b },
       },
     };
 
@@ -197,15 +219,15 @@ export default function UserLandingPage() {
         }
       );
 
-      const data = await response.json();
       if (!response.ok) {
-        throw new Error(`Error: ${data.message}`);
+        throw new Error("Failed to control the light.");
       }
       alert(strings.smartLightUpdatedAlert);
     } catch (error) {
       console.error("Failed to control light:", error);
     }
   };
+
 
   return (
     <main className="flex flex-col items-center justify-top min-h-screen p-4 md:p-8 bg-gray-100 gap-4">
