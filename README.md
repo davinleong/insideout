@@ -1,5 +1,5 @@
 # Inside Out
-Inside Out is a project developed for COMP4357 focusing on the key features: **emotion recognition**, **natural language understanding**, **interactive feedback**, and **smart device integration**.
+Inside Out is a project developed for COMP4537 focusing on the key features: **emotion recognition**, **natural language understanding**, **interactive feedback**, and **smart device integration**.
 
 # Tech Stack
 * React - Frontend developed with React and Next.js framework
